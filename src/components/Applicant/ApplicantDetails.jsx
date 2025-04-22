@@ -225,15 +225,12 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
     try {
       await api.put(`/applicant/update/status`, data);
 
-      // Create a copy of the applicant with reverted status
       const updatedApplicant = { ...applicant, status: backendStatus };
 
-      // Notify parent component of the update
       if (onApplicantUpdate) {
         onApplicantUpdate(updatedApplicant);
       }
 
-      // Refresh status history to show the reversal
       fetchStatusHistory(applicant.progress_id);
 
       setStatus(toast.previousStatus);
@@ -274,16 +271,12 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
   // Handle hover on status history row
   const handleRowMouseEnter = (index, event) => {
     if (skippedStatusesByHistory[index]) {
-      // Calculate position for the hover modal - outside the status history modal
-      // Get the modal element position
       const historyModal = document.querySelector('.status-history-modal');
       if (historyModal) {
         const rect = historyModal.getBoundingClientRect();
-
-        // Position the skipped status modal to the right of the history modal
         setSkippedStatusPosition({
-          top: event.clientY, // Use the mouse Y position
-          left: rect.right + 10, // Place it 10px to the right of the history modal
+          top: event.clientY,
+          left: rect.right + 10,
         });
       }
 
