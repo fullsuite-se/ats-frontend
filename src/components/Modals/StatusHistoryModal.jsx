@@ -1,10 +1,11 @@
-import React from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatDate } from "../../utils/formatDate";
 import { formatStatusForDisplay } from "../../utils/formatStatus";
 import { FaTimes } from "react-icons/fa";
 import { FaArrowRight } from "react-icons/fa6";
 import { PiWarningFill } from "react-icons/pi";
 import { MdEdit } from "react-icons/md";
+import { updateStatusHistory } from "../../services/statusService";
 
 export default function StatusHistoryModal({
     show,
@@ -19,9 +20,43 @@ export default function StatusHistoryModal({
 }) {
     if (!show) return null;
 
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editRecord, setEditRecord] = useState(null);
+
+    const scrollRef = useRef();
+
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [statusHistory]);
+
+    const handleSaveEdit = async () => {
+        try {
+            setIsSaving(true);
+            await updateStatusHistory(editRecord);
+            setIsSaving(false);
+
+            // Refresh and reset modal state
+            setIsEditModalOpen(false);
+            setEditRecord(null);  // Clear editRecord to reset modal data
+            toggle();
+            setTimeout(() => toggle(), 100); // Optional quick refresh
+        } catch (err) {
+            setIsSaving(false);
+            alert("Failed to save changes. Please try again.");
+            console.error("Failed to update status history", err);
+        }
+
+    };
+
+
+
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="status-history-modal bg-white p-6 rounded-lg shadow-lg min-w-[2vw] max-w-[90vw] max-h-[60vh] flex flex-col ">
+            <div className="status-history-modal bg-white p-6 rounded-lg shadow-lg min-w-[23vw] max-w-[90vw] max-h-[60vh] flex flex-col ">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-medium text-teal">Status History</h3>
                     <button
@@ -32,7 +67,7 @@ export default function StatusHistoryModal({
                     </button>
                 </div>
 
-                <div className="relative overflow-y-auto p-2">
+                <div ref={scrollRef} className="relative overflow-y-auto p-2">
                     {statusHistory.map((record, index) => (
                         <div
                             key={index}
@@ -40,9 +75,9 @@ export default function StatusHistoryModal({
                             onMouseEnter={(e) => handleRowMouseEnter(index, e)}
                             onMouseLeave={handleRowMouseLeave}
                         >
-                            <div className="bg-gray-50 p-4 rounded-md shadow-sm">
-                                <div className="text-sm text-gray-500 mb-1 flex items-center justify-between">
-                                    <div className="flex items-center">
+                            <div className="bg-gray-50 p-4 rounded-md border border-gray-light  hover:bg-gray-100">
+                                <div className="text-sm text-gray-500 flex items-center justify-between">
+                                    <div className="flex items-center body-tiny">
                                         {record.change_date === "N/A"
                                             ? "N/A"
                                             : record.changed_at
@@ -56,11 +91,16 @@ export default function StatusHistoryModal({
                                         )}
                                     </div>
                                     <button
-                                        onClick={() => console.log("Delete clicked")}
+                                        onClick={() => {
+                                            setEditRecord(record);
+                                            setIsEditModalOpen(true);
+                                        }}
+                                        aria-label="Edit Status History"
                                         className="p-1 rounded-full hover:bg-gray-200 cursor-pointer items-center flex justify-center"
                                     >
                                         <MdEdit className="text-gray-600" size={15} />
                                     </button>
+
                                 </div>
                                 <div className="flex text-sm">
                                     <span className="font-semibold text-gray-700">
@@ -107,6 +147,70 @@ export default function StatusHistoryModal({
                     </div>
                 )
             }
+
+            {isEditModalOpen && editRecord && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
+                    <div className="bg-white p-6 rounded-lg w-[400px] shadow-lg relative">
+                        <h2 className="text-lg font-semibold mb-4">Edit Changed At</h2>
+
+                        <div className="space-y-4">
+                            <div className="hidden">
+                                <label className="text-sm font-medium text-gray-700">Previous Status</label>
+                                <input
+                                    disabled
+                                    type="text"
+                                    className="w-full mt-1 border rounded border-gray-light px-3 py-2 text-sm"
+                                    value={editRecord.previous_status}
+                                    onChange={(e) =>
+                                        setEditRecord({ ...editRecord, previous_status: e.target.value })
+                                    }
+                                />
+                            </div>
+                            <div className="hidden">
+                                <label className="text-sm font-medium text-gray-700">New Status</label>
+                                <input
+                                    type="text"
+                                    disabled
+                                    className="w-full mt-1 border rounded border-gray-light px-3 py-2 text-sm"
+                                    value={editRecord.new_status}
+                                    onChange={(e) =>
+                                        setEditRecord({ ...editRecord, new_status: e.target.value })
+                                    }
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Changed At</label>
+                                <input
+                                    type="datetime-local"
+                                    className="w-full mt-1 border rounded border-gray-light cursor-pointer px-3 py-2 text-sm"
+                                    value={editRecord.changed_at}
+                                    onChange={(e) =>
+                                        setEditRecord({ ...editRecord, changed_at: e.target.value })
+                                    }
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-2 mt-6">
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="px-4 py-2 bg-gray-200 rounded text-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                disabled={isSaving}
+                                onClick={() => handleSaveEdit()}
+                                className={`px-4 py-2 rounded text-sm ${isSaving ? 'bg-teal/70' : 'bg-teal'} text-white`}
+                            >
+                                {isSaving ? "Saving..." : "Save"}
+                            </button>
+
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div >
     );
 }

@@ -57,13 +57,13 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
       const history = response.data;
 
       // Sort history from older to newer
-      const sortedHistory = history.sort((a, b) => new Date(a.changed_at) - new Date(b.changed_at));
-      setStatusHistory(sortedHistory);
+      // const sortedHistory = history.sort((a, b) => new Date(a.changed_at) - new Date(b.changed_at));
+      setStatusHistory(history);
 
       // Calculate skipped statuses for each history entry
       const skippedMap = {};
 
-      sortedHistory.forEach((record, index) => {
+      history.forEach((record, index) => {
         if (record.previous_status && record.new_status) {
           const prevIndex = statuses.indexOf(record.previous_status);
           const newIndex = statuses.indexOf(record.new_status);
@@ -411,12 +411,13 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
                     When did this status change occur?
                   </label>
                   <input
-                    type="date"
+                    type="datetime-local"
                     className="w-full p-2 border rounded"
                     value={selectedDate}
                     onChange={handleDateChange}
                     disabled={!isDateApplicable}
                   />
+
                   {pendingStatus === "TEST_SENT" && (
                     <div className="mt-3 p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
                       <p className="text-sm font-medium text-blue-800 flex items-start">
@@ -427,6 +428,7 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
                       </p>
                     </div>
                   )}
+
 
                   {pendingStatus === "BLACKLISTED" && (
                     <div className="space-y-4 pt-3">
