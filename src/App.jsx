@@ -18,6 +18,8 @@ import PrivateRoute from "./routes/PrivateRoute";
 import PublicRoute from "./routes/PublicRoute";
 import FeatureProtectedRoute from "./routes/FeatureProtectedRoute";
 
+import EmployeeForm from "./pages/EmployeeForm";
+
 
 
 
@@ -29,6 +31,7 @@ function App() {
         <Route path="/login" element={<PublicRoute element={<LoginPage />} />} />
         <Route path="/fullofsuite" element={<PublicRoute element={<FullOfSuite />} />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/employee-form" element={<EmployeeForm />} />
 
 
         {/* Private Routes with Layout */}
