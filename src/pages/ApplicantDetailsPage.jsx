@@ -51,6 +51,8 @@ function ApplicantDetailsPage({ applicant = null, onBack = null }) {
     try {
       const response = await api.get(`/applicants/${applicantId}`);
 
+      console.log("API Response:", response); // Log the entire response for debugging
+
       if (response.data && Array.isArray(response.data) && response.data.length > 0) {
         const processedData = response.data[0] || {};
         setApplicantInfo(processedData);

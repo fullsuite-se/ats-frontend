@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaAddressCard, FaEnvelope, FaPen, FaPhone, FaUser, FaHistory, FaTrash, FaCloudUploadAlt } from 'react-icons/fa';
+import { FaAddressCard, FaEnvelope, FaPen, FaPhone, FaUser, FaHistory, FaTrash, FaCloudUploadAlt, FaEye } from 'react-icons/fa';
 import useUserStore from '../../context/userStore';
 import api from '../../services/api';
 import Toast from '../../assets/Toast';
@@ -18,7 +18,7 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
   const { statuses } = useApplicantData();
   const [status, setStatus] = useState('');
   const [toasts, setToasts] = useState([]);
-  const { user, hasFeature } = useUserStore(); // Add hasFeature from userStore
+  const { user, hasFeature } = useUserStore();
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [statusHistory, setStatusHistory] = useState([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -39,6 +39,10 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
   const [skippedStatusPosition, setSkippedStatusPosition] = useState({ top: 0, left: 0 });
   const [currentSkippedStatuses, setCurrentSkippedStatuses] = useState([]);
 
+  // Email preview modal
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
+  const [emailPreviewContent, setEmailPreviewContent] = useState('');
+
   //blacklisted info
   const [blacklistedType, setBlacklistedType] = useState(null);
   const [reason, setReason] = useState(null);
@@ -54,7 +58,6 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
   // Check if user has required features
   const canEditApplicant = hasFeature("Edit Applicant");
   const canDeleteApplicant = hasFeature("Delete Applicant");
-
 
 
 
@@ -74,19 +77,14 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
   const fetchStatusHistory = async (progressId) => {
     try {
       const response = await api.get(`/applicant/status-history/${progressId}`);
-
-      // Reverse the history so it's oldest to newest
       const history = response.data.reverse();
-
       setStatusHistory(history);
 
       const skippedMap = {};
-
       history.forEach((record, index) => {
         if (index > 0) {
           const prevStatus = history[index - 1].status;
           const currentStatus = record.status;
-
           const prevIndex = statuses.indexOf(prevStatus);
           const currentIndex = statuses.indexOf(currentStatus);
 
@@ -105,84 +103,123 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
     }
   };
 
-  // Function to check if statuses are being skipped
   const checkForSkippedStatuses = (currentStatus, newStatus) => {
     const currentIndex = statuses.indexOf(currentStatus);
     const newIndex = statuses.indexOf(newStatus);
 
-    // Only check forward progression (not backward)
     if (newIndex > currentIndex + 1) {
-      // Get the skipped statuses
-      const skipped = statuses.slice(currentIndex + 1, newIndex);
-      return skipped;
+      return statuses.slice(currentIndex + 1, newIndex);
     }
     return [];
   };
+const handleStatusChange = (e) => {
+  const newStatus = e.target.value;
+  setPendingStatus(newStatus);
 
-  const handleStatusChange = (e) => {
-    const newStatus = e.target.value;
-    setPendingStatus(newStatus);
+  // Check if any statuses are being skipped
+  if (applicant && applicant.status) {
+    const skipped = checkForSkippedStatuses(applicant.status, newStatus);
 
-    // Check if any statuses are being skipped
-    if (applicant && applicant.status) {
-      const skipped = checkForSkippedStatuses(applicant.status, newStatus);
-
-      if (skipped.length > 0) {
-        setSkippedStatuses(skipped);
-        setShowSkipWarningModal(true);
-        return;
-      }
+    if (skipped.length > 0) {
+      setSkippedStatuses(skipped);
+      setShowSkipWarningModal(true);
+      return;
     }
+  }
 
-    // If no statuses are skipped, proceed normally
-    setShowDatePicker(true);
+  // If status is TEST_SENT, show email preview first
+  if (newStatus === "TEST_SENT") {
+    generateEmailPreview();
+    setShowEmailPreview(true);
+    return;
+  }
 
-    // Set default date and time to now
-    const now = new Date();
-    const formattedDate = now.toISOString().split('T')[0];
-    const formattedTime = now.toTimeString().split(' ')[0]; // Get time in HH:MM:SS format
-    setSelectedDate(`${formattedDate}T${formattedTime}`);
-    setIsDateApplicable(true);
-  };
+  // For other statuses, proceed with date picker
+  setShowDatePicker(true);
+  const now = new Date();
+  const formattedDate = now.toISOString().split('T')[0];
+  const formattedTime = now.toTimeString().split(' ')[0];
+  setSelectedDate(`${formattedDate}T${formattedTime}`);
+  setIsDateApplicable(true);
+};
 
-  const handleDateChange = (e) => {
+// Add this helper function to avoid code duplication
+const proceedToDatePicker = () => {
+  setShowDatePicker(true);
+  const now = new Date();
+  const formattedDate = now.toISOString().split('T')[0];
+  const formattedTime = now.toTimeString().split(' ')[0];
+  setSelectedDate(`${formattedDate}T${formattedTime}`);
+  setIsDateApplicable(true);
+};
+    const handleDateChange = (e) => {
     setSelectedDate(e.target.value);
   };
-
-  const handleDateApplicableChange = (e) => {
-    setIsDateApplicable(e.target.checked);
-  };
-
-  const proceedWithStatusChange = () => {
-    // Close the warning modal
-    setShowSkipWarningModal(false);
-
-    // Proceed with the date picker
+  const generateEmailPreview = () => {
+  const emailContent = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <p>Hi ${applicant.first_name},</p>
+      
+      <p>We have received your application. Thank you for your recent application to join our team here at FullSuite. 
+      We are excited to find out if the #suitelife is the workplace you have been searching for and if you are the next Suitelifer 
+      we will be so excited about you joining our team!</p>
+      
+      <p>To kick off the evaluation process, we need you to undergo an assessment test. Rest assured, this test is not a zero-sum exercise 
+      and there is no specific passing rate you need to hit to move to the next step as we take the result of this test alongside the interview 
+      assessments to get a holistic review of your culture fit with FullSuite.</p>
+      
+      <p>Click the link of the test corresponding to the position you are applying for:</p>
+      
+      <p>Please use the link to access and complete the assessment: 
+      <a href="${applicant.assessment_url}" style="color: #007bff; text-decoration: none;">Start Assessment</a></p>
+      
+      <p>The entire test may take you between 40–80 minutes. Some candidates may find the exercise a bit too fast for comfort, 
+      but our advice is that you answer each question as honestly as you can.</p>
+      
+      <p>For more information about our company and what we do, kindly visit our website here: 
+      <a href="https://fullsuite.ph/" style="color: #007bff; text-decoration: none;">https://fullsuite.ph/</a></p>
+      
+      <p>We look forward to reviewing your completed tests and getting to know you better.</p>
+    </div>
+  `;
+  setEmailPreviewContent(emailContent);
+};
+// Update the proceedWithTestSentStatus function to use the helper
+const proceedWithTestSentStatus = () => {
+  setShowEmailPreview(false);
+  proceedToDatePicker();
+};
+// Update the proceedWithStatusChange function
+// Update the proceedWithStatusChange function to handle TEST_SENT case
+const proceedWithStatusChange = () => {
+  setShowSkipWarningModal(false);
+  
+  // If the pending status is TEST_SENT, show email preview first
+  if (pendingStatus === "TEST_SENT") {
+    generateEmailPreview();
+    setShowEmailPreview(true);
+  } else {
     setShowDatePicker(true);
-
-    // Set default date and time to now
     const now = new Date();
     const formattedDate = now.toISOString().split('T')[0];
-    const formattedTime = now.toTimeString().split(' ')[0]; // Get time in HH:MM:SS format
+    const formattedTime = now.toTimeString().split(' ')[0];
     setSelectedDate(`${formattedDate}T${formattedTime}`);
     setIsDateApplicable(true);
-  };
-
+  }
+};
   const cancelSkipStatusChange = () => {
-    // Reset pending status and close warning modal
     setPendingStatus('');
     setShowSkipWarningModal(false);
   };
 
   const confirmStatusChange = async () => {
     const newStatus = pendingStatus;
-    const previousStatus = status; // Store previous status
-    const previousBackendStatus = applicant.status; // Store previous backend status
+    const previousStatus = status;
+    const previousBackendStatus = applicant.status;
 
     setStatus(newStatus);
     setShowDatePicker(false);
 
-    // Update the applicant status in the backend
     if (applicant && applicant.applicant_id) {
       const backendStatus = newStatus;
       let data = {
@@ -198,20 +235,14 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
 
       try {
         await api.put(`/applicant/update/status`, data);
-
-        // Create a copy of the applicant with updated status
         const updatedApplicant = { ...applicant, status: backendStatus };
 
-        // Notify parent component of the update
         if (onApplicantUpdate) {
           onApplicantUpdate(updatedApplicant);
         }
 
-        // Refresh status history to show the new change
         fetchStatusHistory(applicant.progress_id);
 
-
-        // Add toast message with previous status information
         setToasts([...toasts, {
           id: Date.now(),
           applicant: applicant,
@@ -221,7 +252,6 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
         }]);
       } catch (error) {
         console.error("Error updating status:", error);
-        // Revert status on error
         setStatus(statusMapping[applicant.status]);
       }
     }
@@ -233,9 +263,7 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
   };
 
   const undoStatusUpdate = async (toast) => {
-    // Use the previous status stored in the toast object
     const backendStatus = toast.previousBackendStatus;
-
     let data = {
       "progress_id": applicant.progress_id,
       "status": backendStatus,
@@ -244,7 +272,6 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
 
     try {
       await api.put(`/applicant/update/status`, data);
-
       const updatedApplicant = { ...applicant, status: backendStatus };
 
       if (onApplicantUpdate) {
@@ -252,7 +279,6 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
       }
 
       fetchStatusHistory(applicant.progress_id);
-
       setStatus(toast.previousStatus);
       setToasts(toasts.filter(t => t.id !== toast.id));
     } catch (error) {
@@ -281,13 +307,11 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
 
   const toggleStatusHistoryModal = () => {
     setShowStatusHistoryModal(!showStatusHistoryModal);
-    // Reset skipped status hover when closing modal
     if (showStatusHistoryModal) {
       setHoverIndex(null);
     }
   };
 
-  // Handle hover on status history row
   const handleRowMouseEnter = (index, event) => {
     if (skippedStatusesByHistory[index]) {
       const historyModal = document.querySelector('.status-history-modal');
@@ -308,20 +332,17 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
     setHoverIndex(null);
   };
 
-  // ✅ Delete Applicant Handler
   const handleDeleteApplicant = async () => {
     try {
       setIsDeleting(true);
       await api.delete(`/applicants/delete/${applicant.applicant_id}`);
 
-      // Notify parent component
       if (onApplicantDelete) {
         onApplicantDelete(applicant.applicant_id);
       }
 
       setShowDeleteModal(false);
 
-      // If no callback provided, do a full page refresh
       if (!onApplicantDelete) {
         window.location.reload();
       }
@@ -333,14 +354,12 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
     }
   };
 
-  // ✅ Push to HRIS Handler
   const handlePushToHris = () => {
     setShowPushModal(true);
   };
 
   return (
     <div className="border border-gray-light bg-white rounded-2xl mx-auto flex flex-col lg:flex-row overflow-hidden body-regular">
-
       {/* Left side */}
       <div className='p-5 pl-8 w-full lg:w-[350px] text-gray-dark h-full'>
         <h2 className="display">
@@ -426,7 +445,7 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
                 className="border body-regular border-gray-light h-8 rounded-md cursor-pointer"
                 value={applicant.status}
                 onChange={handleStatusChange}
-                disabled={toasts.length > 0 || showDatePicker} // Disable when there are active toasts or date picker is open
+                disabled={toasts.length > 0 || showDatePicker}
               >
                 <option value="" disabled>Select status</option>
                 {statuses.map((statusOption) => (
@@ -436,7 +455,6 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
                 ))}
               </select>
 
-              {/* Push to HRIS button - only show when status is JOB_OFFER_ACCEPTED */}
               {applicant.status === "JOB_OFFER_ACCEPTED" && (
                 <button
                   onClick={handlePushToHris}
@@ -457,7 +475,6 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
                 </button>
               )}
 
-              {/* Edit button - only show if user has "Edit Applicant" feature */}
               {canEditApplicant && (
                 <button
                   onClick={handleEditClick}
@@ -467,7 +484,6 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
                 </button>
               )}
 
-              {/* Delete button - only show if user has "Delete Applicant" feature */}
               {canDeleteApplicant && (
                 <button
                   onClick={() => setShowDeleteModal(true)}
@@ -488,6 +504,68 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
               onProceed={proceedWithStatusChange}
             />
           )}
+
+          {/* Email Preview Modal for TEST_SENT status */}
+     {showEmailPreview && (
+      <Modal>
+  <div
+    className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div className="bg-white rounded-2xl shadow-2xl w-11/12 max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-gray-100">
+        <h3 className="text-xl font-semibold text-gray-800">
+          Email Preview <span className="text-teal-600">— Test Assessment</span>
+        </h3>
+      </div>
+
+      {/* Email content */}
+      <div className="p-6 overflow-auto flex-1 bg-gray-50">
+        <div
+          className="border p-4 rounded bg-white shadow-inner max-h-96 overflow-auto text-gray-700"
+          dangerouslySetInnerHTML={{ __html: emailPreviewContent }}
+        />
+      </div>
+
+      {/* Recipient info */}
+      <div className="px-6 py-3 text-sm text-gray-600 border-t border-gray-100">
+        <p className="mb-1">
+          This email will be sent to:
+          <span className="font-medium text-gray-800">
+            {" "}
+            {applicant.email_1}
+            {applicant.email_2 && `, ${applicant.email_2}`}
+            {applicant.email_3 && `, ${applicant.email_3}`}
+          </span>
+        </p>
+        <p>
+          CC: <span className="font-medium">hireme@getfullsuite.com</span> | BCC:{" "}
+          <span className="font-medium">{user.user_email}</span>
+        </p>
+      </div>
+
+      {/* Footer buttons */}
+      <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
+        <button
+          onClick={() => setShowEmailPreview(false)}
+          className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={proceedWithTestSentStatus}
+          className="px-5 py-2 rounded-lg bg-gradient-to-r from-teal-500 to-teal-600 text-white hover:from-teal-600 hover:to-teal-700 shadow transition-all"
+        >
+          Continue to Set Date
+        </button>
+      </div>
+    </div>
+  </div>
+  </Modal>
+)}
+
 
           {/* Date picker modal */}
           {showDatePicker && (
