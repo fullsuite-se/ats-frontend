@@ -194,25 +194,33 @@ export default function Sidebar({ isOpen, onToggleSidebar, onSelectView, selecte
     </>
   );
 }
-
 // SidebarLink Component
 function SidebarLink({ to, text, icon, isCollapsed }) {
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+        `group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
           isActive
             ? "bg-teal-600 text-white shadow-sm"
             : "text-gray-600 hover:bg-gray-100"
         } ${isCollapsed ? "justify-center" : ""}`
       }
-      title={isCollapsed ? text : ""}
     >
+      {/* Icon */}
       <span className={`${isCollapsed ? "" : "w-5 flex justify-center"}`}>
         {icon}
       </span>
+
+      {/* Text (hidden if collapsed) */}
       {!isCollapsed && <span className="truncate">{text}</span>}
+
+      {/* Custom Tooltip */}
+      {isCollapsed && (
+        <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 shadow-md transition-opacity duration-200 group-hover:opacity-100">
+          {text}
+        </span>
+      )}
     </NavLink>
   );
 }
