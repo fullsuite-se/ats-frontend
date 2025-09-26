@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { FaFileExport } from "react-icons/fa";
+import { FaFileExport, FaSearch, FaFilter, FaCalendarAlt, FaTimes } from "react-icons/fa";
 import AddApplicantDropdown from "../components/AddApplicantDropdown";
 import ApplicantTable from "../components/ApplicantTable";
 import ExportToPdf from "../utils/ExportToPdf";
@@ -14,7 +14,7 @@ import { clearFilter } from "../utils/applicantUtils";
 import { useStages } from "../hooks/useStages";
 import { fetchCounts } from "../services/statusCounterService";
 import { initialStages } from "../data/stages";
-import useUserStore from "../context/userStore"; // Import the Zustand store
+import useUserStore from "../context/userStore";
 
 export default function ApplicantList({ onSelectApplicant, onAddApplicantClick }) {
   const { search, setSearch, status, setStatus, clearStatus, dateFilter, setDateFilter, dateFilterType, setDateFilterType, selectedDate, setSelectedDate } = applicantFilterStore();
@@ -25,9 +25,9 @@ export default function ApplicantList({ onSelectApplicant, onAddApplicantClick }
 
   const [showPdfModal, setShowPdfModal] = useState(false);
 
-  const { hasFeature } = useUserStore(); // Access the hasFeature function
-  const canExportApplicant = hasFeature("Export Applicant"); // Check if the user has the "Export Applicant" feature
-  const canAddApplicant = hasFeature("Add Applicant"); // Check if the user has the "Add Applicant" feature
+  const { hasFeature } = useUserStore();
+  const canExportApplicant = hasFeature("Export Applicant");
+  const canAddApplicant = hasFeature("Add Applicant");
 
   useEffect(() => {
     if (showPdfModal) {
@@ -52,82 +52,107 @@ export default function ApplicantList({ onSelectApplicant, onAddApplicantClick }
   };
 
   return (
-    <div className="relative mx-auto max-w-[1200px] rounded-3xl bg-white p-6 border border-gray-light">
-      <div className="mb-4 flex items-center justify-between rounded-lg">
-        <h1 className="headline text-gray-dark font-semibold md:mb-0">Applicant List</h1>
-        <div className="center flex gap-2">
+    <div className="relative mx-auto max-w-[1200px] rounded-xl bg-white p-4 border border-gray-200">
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-gray-800">Applicant List</h1>
+        <div className="flex items-center gap-2">
           {canExportApplicant && (
-            <div className="relative inline-block text-left">
-              <button
-                className="flex items-center rounded-md bg-white border border-teal px-2 py-1 text-sm text-teal hover:bg-gray-light cursor-pointer"
-                onClick={handlePdfExport}
-              >
-                <FaFileExport className="mr-2 h-4 w-4" /> Export
-              </button>
-            </div>
+            <button
+              className="flex items-center gap-2 rounded-lg border border-[#008080] px-3 py-1.5 text-[#008080] hover:bg-[#008080]/5 text-sm transition-colors"
+              onClick={handlePdfExport}
+            >
+              <FaFileExport className="h-3.5 w-3.5" /> Export
+            </button>
           )}
           {canAddApplicant && (
-            <AddApplicantDropdown className="" onAddManually={onAddApplicantClick} />
+            <AddApplicantDropdown onAddManually={onAddApplicantClick} />
           )}
         </div>
       </div>
 
-      <div className="mb-4 flex flex-col items-center gap-2 rounded-lg bg-teal-600/10 p-2 md:flex-row">
-        <div className="flex-initial w-full bg-white md:mb-0 md:w-1/3">
-          <input
-            type="text"
-            placeholder="Search"
-            value={search}
-            onChange={(e) => {
-              clearStatus([]);
-              setSearch(e.target.value);
-              searchApplicant(e.target.value, setApplicantData, stages, setStages, setPositionFilter, setSelectedDate);
-              fetchCounts(setStages, initialStages);
-            }}
-            className="w-full body-regular rounded-md border border-gray-300 p-2"
-          />
-        </div>
-        <div className="flex w-full items-center gap-2 md:w-auto md:flex-row justify-end">
-          <select
-            value={dateFilterType}
-            onChange={(e) => {
-              setDateFilterType(e.target.value);
-            }}
-            className="flex body-regular rounded-md border border-gray-300 p-2 w-auto"
-          >
-            <option value="month">Month</option>
-            <option value="year">Year</option>
-          </select>
-          <DatePicker
-            selected={selectedDate}
-            onChange={(date) => {
-              setSelectedDate(date);
-              setDateFilter(date);
-              setSearch("");
-              const formattedDate =
-                dateFilterType === "month"
-                  ? moment(date).format("MMMM")
-                  : moment(date).format("YYYY");
-              filterApplicants(positionFilter, setApplicantData, status, formattedDate, dateFilterType);
-            }}
-            showMonthYearPicker={dateFilterType === "month"}
-            showYearPicker={dateFilterType === "year"}
-            dateFormat={dateFilterType === "month" ? "MM/yyyy" : "yyyy"}
-            className="flex-auto body-regular rounded-md border border-gray-300 p-2 w-20"
-            placeholderText={`${dateFilterType === "month" ? "MM/yyyy" : "yyyy"}`}
-          />
-          <button
-            className="flex w-auto body-regular rounded-md bg-teal-600 px-4 py-2 text-white hover:bg-teal-700"
-            onClick={() =>
-              clearFilter(setSelectedDate, setApplicantData, setDateFilterType, setDateFilter, setSearch, status, positionFilter)
-            }
-          >
-            Clear
-          </button>
+      {/* Minimalist Filter Section */}
+      <div className="mb-4 rounded-lg border border-gray-200 p-3">
+        <div className="flex flex-col lg:flex-row gap-3">
+          {/* Search Input */}
+          <div className="flex-1 relative">
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-3.5 w-3.5" />
+            <input
+              type="text"
+              placeholder="Search applicants..."
+              value={search}
+              onChange={(e) => {
+                clearStatus([]);
+                setSearch(e.target.value);
+                searchApplicant(e.target.value, setApplicantData, stages, setStages, setPositionFilter, setSelectedDate);
+                fetchCounts(setStages, initialStages);
+              }}
+              className="w-full pl-9 pr-4 py-2 rounded-md border border-gray-300 focus:border-[#008080] focus:ring-1 focus:ring-[#008080] text-sm"
+            />
+          </div>
+
+          {/* Date Filters */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex gap-2">
+              <select
+                value={dateFilterType}
+                onChange={(e) => setDateFilterType(e.target.value)}
+                className="px-3 py-2 rounded-md border border-gray-300 focus:border-[#008080] focus:ring-1 focus:ring-[#008080] text-sm min-w-[120px]"
+              >
+                <option value="month">Month</option>
+                <option value="year">Year</option>
+              </select>
+              
+              <div className="relative">
+                <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-3.5 w-3.5" />
+                <DatePicker
+                  selected={selectedDate}
+                  onChange={(date) => {
+                    setSelectedDate(date);
+                    setDateFilter(date);
+                    setSearch("");
+                    const formattedDate = dateFilterType === "month" 
+                      ? moment(date).format("MMMM")
+                      : moment(date).format("YYYY");
+                    filterApplicants(positionFilter, setApplicantData, status, formattedDate, dateFilterType);
+                  }}
+                  showMonthYearPicker={dateFilterType === "month"}
+                  showYearPicker={dateFilterType === "year"}
+                  dateFormat={dateFilterType === "month" ? "MM/yyyy" : "yyyy"}
+                  className="pl-9 pr-4 py-2 rounded-md border border-gray-300 focus:border-[#008080] focus:ring-1 focus:ring-[#008080] text-sm w-full min-w-[140px]"
+                  placeholderText={`Select ${dateFilterType}`}
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <button
+                className="px-3 py-2 rounded-md bg-[#008080] text-white hover:bg-[#006666] text-sm font-medium transition-colors"
+                onClick={() => {
+                  const formattedDate = selectedDate && dateFilterType === "month"
+                    ? moment(selectedDate).format("MMMM")
+                    : selectedDate && dateFilterType === "year"
+                    ? moment(selectedDate).format("YYYY")
+                    : "";
+                  filterApplicants(positionFilter, setApplicantData, status, formattedDate, dateFilterType);
+                }}
+              >
+                Filter
+              </button>
+              
+              <button
+                className="px-3 py-2 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors"
+                onClick={() => clearFilter(setSelectedDate, setApplicantData, setDateFilterType, setDateFilter, setSearch, status, positionFilter)}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="rounded-lg bg-white overflow-x-auto" style={{ height: "", overflowY: "auto" }}>
+      {/* Table Container */}
+      <div className="rounded-lg border border-gray-200 overflow-hidden">
         <ApplicantTable onSelectApplicant={onSelectApplicant} />
       </div>
 
