@@ -59,6 +59,8 @@ export default function ATSHealthcheck({ onSelectApplicant }) {
               name: `${applicant.first_name} ${applicant.last_name}`,
               position: applicant.title,
               timeAgo: getTimeAgo(applicant.date_created || applicant.updated_at),
+              // Store the actual date for sorting
+              date: new Date(applicant.date_created || applicant.updated_at),
               applicantData: applicant,
               status: getFormattedStatus(applicant.status, applicant.stage),
               isRecent: isNotificationRecent(applicant.date_created || applicant.updated_at),
@@ -91,6 +93,8 @@ export default function ATSHealthcheck({ onSelectApplicant }) {
               name: `${applicant.first_name} ${applicant.last_name}`,
               position: applicant.title,
               timeAgo: getTimeAgo(applicant.date_applied || applicant.created_at),
+              // Store the actual date for sorting
+              date: new Date(applicant.date_applied || applicant.created_at),
               applicantData: applicant,
               status: getFormattedStatus(applicant.status, applicant.stage),
               notification_type: startCase(applicant.notification_type?.toLowerCase() || 'general'),
@@ -111,14 +115,17 @@ export default function ATSHealthcheck({ onSelectApplicant }) {
           });
         }
 
+        // Sort all arrays by date (newest first)
+        const sortByDateDesc = (a, b) => new Date(b.date) - new Date(a.date);
+        
         setAllNotifications({
-          general: allGeneralNotifications,
-          needsAttention: allNeedsAttentionNotifications
+          general: allGeneralNotifications.sort(sortByDateDesc),
+          needsAttention: allNeedsAttentionNotifications.sort(sortByDateDesc)
         });
 
         setNotifications({
-          general: generalNotifications,
-          needsAttention: needsAttentionNotifications
+          general: generalNotifications.sort(sortByDateDesc),
+          needsAttention: needsAttentionNotifications.sort(sortByDateDesc)
         });
       } catch (err) {
         console.error("Error fetching notifications:", err);
