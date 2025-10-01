@@ -1,4 +1,4 @@
-import { formatTime } from "../../utils/notificationUtils";
+import { formatTime } from "../../utils/NotificationUtils.js";
 
 export default function NotificationItem({ appointment, onClick, badge }) {
   return (
