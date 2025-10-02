@@ -15,15 +15,25 @@ export const filterApplicants = async (
   dateType,
 ) => {
   let sql = "/applicants/filter?";
-  position != "All" ? (sql += `position=${position}`) : (sql += "");
-  date !== "Invalid date" ? (sql += `&${dateType}=${date}`) : (sql += "");
+  
+  // URL encode all parameters
+  if (position !== "All") {
+    sql += `position=${encodeURIComponent(position)}`;
+  }
+  
+  if (date !== "Invalid date") {
+    sql += `${position !== "All" ? '&' : ''}${dateType}=${encodeURIComponent(date)}`;
+  }
 
   if (status.length === 0 && position === "All" && date === "Invalid date") {
     fetchApplicants(setApplicantData);
   } else {
-    status.forEach((statusItem) => {
-      sql += `&status=${statusItem}`;
+    status.forEach((statusItem, index) => {
+      // Use proper URL encoding for status parameters
+      const separator = (index === 0 && position === "All" && date === "Invalid date") ? '' : '&';
+      sql += `${separator}status=${encodeURIComponent(statusItem)}`;
     });
+    
     const { data } = await api.get(sql);
     setApplicantData(data);
   }
