@@ -18,7 +18,6 @@ export const fetchCounts = async (setStages, initialStages) => {
   );
 };
 
-//For filtering status counter
 export const filterCounter = async (
   position,
   setStages,
@@ -30,8 +29,11 @@ export const filterCounter = async (
   setStages(initialStages);
   let counts = [{}];
 
-  if (position != "All") {
-    counts = await api.get(`/counter/?position=${position}`);
+  // URL encode the position parameter
+  const encodedPosition = encodeURIComponent(position);
+
+  if (position !== "All") {
+    counts = await api.get(`/counter/?position=${encodedPosition}`);
   } else {
     counts = await api.get(`/counter`);
   }
