@@ -93,7 +93,7 @@ function ApplicantSendMailPage({ applicant }) {
     fetchTemplates();
   }, []);
 
-  // Function to generate the exact email preview
+  // Function to generate the exact email preview WITHOUT signature
   const generateEmailPreview = () => {
     if (!emailContent) return '';
 
@@ -116,24 +116,7 @@ function ApplicantSendMailPage({ applicant }) {
       .replace(/<em>/g, '<em style="font-style: italic;">')
       .replace(/&lt;Applicant's Name&gt;|Applicant's Name/g, applicant?.first_name || 'Applicant');
 
-    // Generate email signature similar to backend
-    const emailSignatureString = `
-      <div style="font-family: Arial, sans-serif; color: #333; padding: 15px 0; border-top: 2px solid #008080; margin-top: 20px;">
-        <div style="display: flex; align-items: center;">
-          <img src="${user?.company_logo || 'https://via.placeholder.com/80x80?text=Logo'}" alt="Company Logo" width="80" height="80" style="border-radius: 10px; margin-right: 15px;">
-          <div>
-            <p style="margin: 5px 0; font-size: 14px; font-weight: bold;">${user?.first_name || ''} ${user?.last_name || ''}</p>
-            <p style="margin: 5px 0; font-size: 14px;">${user?.job_title || 'Team Member'} | <a href="https://${user?.company_name || 'company'}.com" style="color: #008080; text-decoration: none;">${user?.company_name || 'Company'}</a></p>
-            <p style="margin: 5px 0; font-size: 14px;">${user?.contact_number ? `📞 ${user.contact_number}` : ''} ${user?.contact_number && user?.user_email ? '|' : ''} ${user?.user_email ? `✉️ <a href="mailto:${user.user_email}" style="color: #008080; text-decoration: none;">${user.user_email}</a>` : ''}</p>
-            <p style="font-size: 12px; color: #777; margin-top: 10px; font-style: italic;">
-              Confidentiality Notice: This email and any attachments are confidential and intended solely for the use of the individual to whom they are addressed.
-            </p>
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Create the full email HTML structure
+    // Create the full email HTML structure WITHOUT signature
     return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -192,11 +175,6 @@ function ApplicantSendMailPage({ applicant }) {
               <div class="email-content">
                 ${processedContent}
               </div>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              ${emailSignatureString}
             </td>
           </tr>
         </table>
@@ -438,7 +416,7 @@ function ApplicantSendMailPage({ applicant }) {
               <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-blue-800 text-sm">
                   <strong>Review before sending:</strong> Please review the email below before sending it to {applicant?.first_name || 'the applicant'}.
-                  The email signature is automatically included.
+                  The email signature will be automatically included when sent.
                 </p>
               </div>
               
@@ -469,7 +447,7 @@ function ApplicantSendMailPage({ applicant }) {
               
               <div className="border border-gray-300 rounded-lg overflow-hidden">
                 <div className="bg-gray-100 px-4 py-2 border-b border-gray-300">
-                  <p className="text-sm font-medium text-gray-700">Email Preview:</p>
+                  <p className="text-sm font-medium text-gray-700">Email Preview (Signature will be added automatically):</p>
                 </div>
                 <iframe
                   srcDoc={generateEmailPreview()}
@@ -504,7 +482,7 @@ function ApplicantSendMailPage({ applicant }) {
                     </>
                   ) : (
                     <>
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                       </svg>
                       Send Email
@@ -782,7 +760,7 @@ function ApplicantSendMailPage({ applicant }) {
             </>
           ) : (
             <>
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-4 w-4 rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
               Send Email
