@@ -102,7 +102,7 @@ export default function ApplicantList({ onSelectApplicant, onAddApplicantClick }
                 <option value="month">Month</option>
                 <option value="year">Year</option>
               </select>
-              
+
               <div className="relative">
                 <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-3.5 w-3.5" />
                 <DatePicker
@@ -111,7 +111,7 @@ export default function ApplicantList({ onSelectApplicant, onAddApplicantClick }
                     setSelectedDate(date);
                     setDateFilter(date);
                     setSearch("");
-                    const formattedDate = dateFilterType === "month" 
+                    const formattedDate = dateFilterType === "month"
                       ? moment(date).format("MMMM")
                       : moment(date).format("YYYY");
                     filterApplicants(positionFilter, setApplicantData, status, formattedDate, dateFilterType);
@@ -124,24 +124,12 @@ export default function ApplicantList({ onSelectApplicant, onAddApplicantClick }
                 />
               </div>
             </div>
-            
+
             <div className="flex gap-2">
+
+
               <button
                 className="px-3 py-2 rounded-md bg-[#008080] text-white hover:bg-[#006666] text-sm font-medium transition-colors"
-                onClick={() => {
-                  const formattedDate = selectedDate && dateFilterType === "month"
-                    ? moment(selectedDate).format("MMMM")
-                    : selectedDate && dateFilterType === "year"
-                    ? moment(selectedDate).format("YYYY")
-                    : "";
-                  filterApplicants(positionFilter, setApplicantData, status, formattedDate, dateFilterType);
-                }}
-              >
-                Filter
-              </button>
-              
-              <button
-                className="px-3 py-2 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors"
                 onClick={() => clearFilter(setSelectedDate, setApplicantData, setDateFilterType, setDateFilter, setSearch, status, positionFilter)}
               >
                 Clear
