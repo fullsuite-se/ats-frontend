@@ -1,5 +1,5 @@
 import { act, useEffect, useState } from "react"
-import { FiUsers, FiUserCheck, FiCalendar, FiBriefcase, FiRefreshCw } from "react-icons/fi"
+import { FiUsers, FiUserCheck, FiCalendar, FiBriefcase, FiRefreshCw, FiUserPlus } from "react-icons/fi"
 
 import api from "../services/api"
 
@@ -9,6 +9,7 @@ import PendingTable from "../components/PendingTable"
 import InterviewTable from "../components/InterviewTable"
 import { useNavigate } from "react-router-dom"
 import { NavLink } from "react-router-dom"
+import FirstTimeApplicantTable from "../components/FirstTimeApplicantTable"
 
 // Custom Tabs component
 const Tabs = ({ tabs, activeTab, setActiveTab }) => {
@@ -40,6 +41,7 @@ const Skeleton = ({ className = "" }) => {
 // Summary Cards Section
 const SummarySection = ({ onRefresh, setActiveTab }) => {
   const [summaryData, setSummaryData] = useState(null)
+  const [firstTimeCount, setFirstTimeCount] = useState(0) // Separate state for first-time job seekers
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const navigate = useNavigate();
@@ -48,8 +50,13 @@ const SummarySection = ({ onRefresh, setActiveTab }) => {
     setLoading(true)
     setError(null)
     try {
-      const response = await api.get("/analytics/dashboard/summary")
-      setSummaryData(response.data.data)
+      const [summaryResponse, firstTimeResponse] = await Promise.all([
+        api.get("/analytics/dashboard/summary"),
+        api.get("/applicants/first-time-job-seekers")
+      ])
+      
+      setSummaryData(summaryResponse.data.data)
+      setFirstTimeCount(firstTimeResponse.data.totalCount || 0)
     } catch (err) {
       console.error("Error fetching summary data:", err)
       setError("Failed to load summary data")
@@ -73,7 +80,7 @@ const SummarySection = ({ onRefresh, setActiveTab }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
       <NavLink to="/applicants">
         <div
           className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out"
@@ -138,6 +145,32 @@ const SummarySection = ({ onRefresh, setActiveTab }) => {
             </div>
           )}
         </div>
+      </div>
+
+      <div
+        onClick={() => handleCardClick("firstTimeJobSeekers")}
+        className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out"
+      >
+        <div
+        onClick={() => handleCardClick("firstTimeJobSeekers")}
+        className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out"
+      >
+        <div className="p-6">
+          <div className="flex justify-center">
+            <FiUserPlus className="mr-2 h-5 w-5 text-teal" />
+            <span className="body-regular text-gray-500">First-time Job Seekers</span>
+          </div>
+          {loading ? (
+            <Skeleton className="h-8 w-24 mt-2" />
+          ) : error ? (
+            <div className="text-red-500 body-regular mt-2">Error loading data</div>
+          ) : (
+            <div className="text-center mt-2">
+              <div className="text-2xl font-bold">{firstTimeCount.toLocaleString()}</div>
+            </div>
+          )}
+        </div>
+      </div>
       </div>
 
       <NavLink to="/jobs">
@@ -364,6 +397,88 @@ const InterviewsSection = ({ onRefresh }) => {
   )
 }
 
+// First-time Job Seekers Section
+// First-time Job Seekers Section
+const FirstTimeJobSeekersSection = ({ onRefresh }) => {
+  const [firstTimeJobSeekers, setFirstTimeJobSeekers] = useState([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  const fetchFirstTimeJobSeekers = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await api.get("/applicants/first-time-job-seekers")
+      const applicants = response.data.firstTimeJobSeekers || []
+      
+      // Transform the data to match the table format
+      const transformedApplicants = applicants.map(applicant => ({
+        applicant_id: applicant.applicant_id,
+        first_name: applicant.first_name,
+        middle_name: applicant.middle_name,
+        last_name: applicant.last_name,
+        email_1: applicant.email_1,
+        position_applied: applicant.position_applied,
+        position: applicant.position_applied, // For compatibility
+        status: applicant.status,
+        application_date: applicant.application_date,
+        applied_date: applicant.application_date // For compatibility
+      }))
+      
+      setFirstTimeJobSeekers(transformedApplicants)
+      setTotalCount(response.data.totalCount || 0)
+    } catch (err) {
+      console.error("Error fetching first-time job seekers:", err)
+      setError("Failed to load first-time job seekers")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchFirstTimeJobSeekers()
+  }, [])
+
+  useEffect(() => {
+    if (onRefresh) {
+      fetchFirstTimeJobSeekers()
+    }
+  }, [onRefresh])
+
+  const handleRowClick = (applicant) => {
+    // You can implement navigation or modal display here
+    console.log("First-time job seeker clicked:", applicant)
+    // Example: navigate to applicant details
+    // navigate(`/applicants/${applicant.applicant_id}`)
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="headline text-gray-900">First-time Job Seekers</h3>
+        <p className="body-tiny text-gray-400">
+          {loading ? "Loading..." : `Total: ${totalCount} applicants`}
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="p-4 text-red-500 text-center">{error}</div>
+      ) : (
+        <FirstTimeApplicantTable
+          applicants={firstTimeJobSeekers}
+          onSelectApplicant={handleRowClick}
+        />
+      )}
+    </div>
+  )
+}
 export default function Dashboard() {
   // State for tracking refresh trigger
   const [refreshCounter, setRefreshCounter] = useState(0);
@@ -376,6 +491,7 @@ export default function Dashboard() {
     { label: "Recent Applicants", value: "applicants" },
     { label: "Pending Applicants", value: "pending" },
     { label: "Upcoming Interviews", value: "interviews" },
+    { label: "First-time Job Seekers", value: "firstTimeJobSeekers" },
   ]
 
   // Handle refresh action
@@ -420,6 +536,10 @@ export default function Dashboard() {
 
                 <div className={activeTab === "interviews" ? "block" : "hidden"}>
                   <InterviewsSection onRefresh={refreshCounter} />
+                </div>
+
+                <div className={activeTab === "firstTimeJobSeekers" ? "block" : "hidden"}>
+                  <FirstTimeJobSeekersSection onRefresh={refreshCounter} />
                 </div>
 
               </div>
