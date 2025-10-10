@@ -1,5 +1,6 @@
-import { act, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { FiUsers, FiUserCheck, FiCalendar, FiBriefcase, FiRefreshCw, FiUserPlus } from "react-icons/fi"
+import { useNavigate, NavLink } from "react-router-dom"
 
 import api from "../services/api"
 
@@ -7,8 +8,6 @@ import PendingApplicantConfirmationModal from "../components/Modals/PendingAppli
 import RecentTable from "../components/RecentTable"
 import PendingTable from "../components/PendingTable"
 import InterviewTable from "../components/InterviewTable"
-import { useNavigate } from "react-router-dom"
-import { NavLink } from "react-router-dom"
 import FirstTimeApplicantTable from "../components/FirstTimeApplicantTable"
 
 // Custom Tabs component
@@ -41,10 +40,9 @@ const Skeleton = ({ className = "" }) => {
 // Summary Cards Section
 const SummarySection = ({ onRefresh, setActiveTab }) => {
   const [summaryData, setSummaryData] = useState(null)
-  const [firstTimeCount, setFirstTimeCount] = useState(0) // Separate state for first-time job seekers
+  const [firstTimeCount, setFirstTimeCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const navigate = useNavigate();
 
   const fetchSummaryData = async () => {
     setLoading(true)
@@ -82,9 +80,7 @@ const SummarySection = ({ onRefresh, setActiveTab }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
       <NavLink to="/applicants">
-        <div
-          className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out"
-        >
+        <div className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out">
           <div className="p-6">
             <div className="flex justify-center">
               <FiUsers className="mr-2 h-5 w-5 text-teal" />
@@ -105,9 +101,7 @@ const SummarySection = ({ onRefresh, setActiveTab }) => {
       </NavLink>
 
       <NavLink to="/analytics">
-        <div
-          className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out"
-        >
+        <div className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out">
           <div className="p-6">
             <div className="flex justify-center">
               <FiUserCheck className="mr-2 h-5 w-5 text-teal" />
@@ -147,11 +141,8 @@ const SummarySection = ({ onRefresh, setActiveTab }) => {
         </div>
       </div>
 
+      {/* Fixed First-time Job Seekers Card - Removed duplicate onClick */}
       <div
-        onClick={() => handleCardClick("firstTimeJobSeekers")}
-        className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out"
-      >
-        <div
         onClick={() => handleCardClick("firstTimeJobSeekers")}
         className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out"
       >
@@ -171,12 +162,9 @@ const SummarySection = ({ onRefresh, setActiveTab }) => {
           )}
         </div>
       </div>
-      </div>
 
       <NavLink to="/jobs">
-        <div
-          className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out"
-        >
+        <div className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out">
           <div className="p-6">
             <div className="flex justify-center">
               <FiBriefcase className="mr-2 h-5 w-5 text-teal" />
@@ -329,17 +317,15 @@ const PendingApplicantsSection = ({ onRefresh }) => {
       )}
 
       {/* Confirmation Modal */}
-      {
-        selectedApplicant && (
-          <PendingApplicantConfirmationModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            applicant={selectedApplicant}
-            onActionComplete={handleActionComplete}
-          />
-        )
-      }
-    </div >
+      {selectedApplicant && (
+        <PendingApplicantConfirmationModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          applicant={selectedApplicant}
+          onActionComplete={handleActionComplete}
+        />
+      )}
+    </div>
   )
 }
 
@@ -397,13 +383,13 @@ const InterviewsSection = ({ onRefresh }) => {
   )
 }
 
-// First-time Job Seekers Section
-// First-time Job Seekers Section
+// First-time Job Seekers Section - Fixed with navigation
 const FirstTimeJobSeekersSection = ({ onRefresh }) => {
   const [firstTimeJobSeekers, setFirstTimeJobSeekers] = useState([])
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const navigate = useNavigate()
 
   const fetchFirstTimeJobSeekers = async () => {
     setLoading(true)
@@ -415,6 +401,7 @@ const FirstTimeJobSeekersSection = ({ onRefresh }) => {
       // Transform the data to match the table format
       const transformedApplicants = applicants.map(applicant => ({
         applicant_id: applicant.applicant_id,
+        id: applicant.applicant_id, // Add id for compatibility
         first_name: applicant.first_name,
         middle_name: applicant.middle_name,
         last_name: applicant.last_name,
@@ -447,10 +434,13 @@ const FirstTimeJobSeekersSection = ({ onRefresh }) => {
   }, [onRefresh])
 
   const handleRowClick = (applicant) => {
-    // You can implement navigation or modal display here
     console.log("First-time job seeker clicked:", applicant)
-    // Example: navigate to applicant details
-    // navigate(`/applicants/${applicant.applicant_id}`)
+    const applicantId = applicant.applicant_id || applicant.id
+    if (applicantId) {
+      navigate(`/applicants/${applicantId}`)
+    } else {
+      console.error("No valid applicant ID found")
+    }
   }
 
   return (
@@ -479,6 +469,7 @@ const FirstTimeJobSeekersSection = ({ onRefresh }) => {
     </div>
   )
 }
+
 export default function Dashboard() {
   // State for tracking refresh trigger
   const [refreshCounter, setRefreshCounter] = useState(0);
@@ -501,7 +492,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className=" mx-auto mt-10">
+      <div className="mx-auto mt-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
@@ -509,7 +500,10 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center space-x-4 mt-4 md:mt-0">
-            <div onClick={handleRefresh} variant="secondary" className="flex items-center gap-2 bg-white text-teal border border-teal hover:bg-[#e6ffff] focus:ring-teal justify-center px-4 py-2 body-regular rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer">
+            <div 
+              onClick={handleRefresh} 
+              className="flex items-center gap-2 bg-white text-teal border border-teal hover:bg-[#e6ffff] focus:ring-teal justify-center px-4 py-2 body-regular rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer"
+            >
               <FiRefreshCw className="h-4 w-4" />
               Refresh
             </div>
@@ -519,13 +513,12 @@ export default function Dashboard() {
         {/* Summary Cards */}
         <SummarySection onRefresh={refreshCounter} setActiveTab={setActiveTab} />
 
-        <div className=" gap-6">
+        <div className="gap-6">
           <div className="bg-white rounded-2xl border border-gray-200">
             <div className="px-6 py-3">
               <Tabs tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />
 
               <div className="p-4">
-
                 <div className={activeTab === "applicants" ? "block" : "hidden"}>
                   <RecentApplicantsSection onRefresh={refreshCounter} />
                 </div>
@@ -541,7 +534,6 @@ export default function Dashboard() {
                 <div className={activeTab === "firstTimeJobSeekers" ? "block" : "hidden"}>
                   <FirstTimeJobSeekersSection onRefresh={refreshCounter} />
                 </div>
-
               </div>
             </div>
           </div>
