@@ -87,6 +87,27 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
     return typeMap[type] || formatEnumForDisplay(type);
   };
 
+  // Format reason for leaving for display
+  const formatReasonForLeaving = (reason) => {
+    if (!reason) return 'Not specified';
+
+    const reasonMap = {
+      'RESIGNED': 'Resigned',
+      'END_OF_CONTRACT': 'End of Contract',
+      'TERMINATED': 'Terminated',
+      'LAID_OFF': 'Laid Off',
+      'CAREER_CHANGE': 'Career Change',
+      'PERSONAL_REASONS': 'Personal Reasons',
+      'RELOCATION': 'Relocation',
+      'BETTER_OPPORTUNITY': 'Better Opportunity',
+      'HEALTH_REASONS': 'Health Reasons',
+      'RETIREMENT': 'Retirement',
+      'OTHER': 'Other Reasons'
+    };
+
+    return reasonMap[reason] || formatEnumForDisplay(reason);
+  };
+
   useEffect(() => {
     if (applicant && applicant.status) {
       setStatus(statusMapping[applicant.status] || '');
@@ -706,58 +727,76 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
             />
           )}
 
-<div className="pl-5 flex-grow">
+          <div className="pl-5 flex-grow">
 
-  {applicant.status === 'BLACKLISTED' && (
-    <div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
-      <div className="flex items-center space-x-2">
-        <FaExclamationTriangle className="h-4 w-4 text-red-500" />
-        <span className="text-sm font-semibold text-red-700">Blacklisted •</span>
-        <span className="text-sm text-red-600">{formatBlacklistedType(applicant.blacklisted_type)}</span>
-        <span className="text-sm text-red-600">• {formatBlacklistedReason(applicant.reason)}</span>
-      </div>
-      {/* <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-300">
-        Restricted
-      </span> */}
-    </div>
-  )}
-
-  {/* Applicant Details Grid - Keep original style */}
-  <div className="grid grid-cols-3 gap-3 mt-4">
-    <div className="text-teal">Applied for</div>
-    <div className="col-span-2">{applicant.job_title || 'Not specified'}</div>
-
-    <div className="text-teal">Applied on</div>
-    <div className="col-span-2">
-      {applicant.applicant_created_at
-        ? new Date(applicant.applicant_created_at).toLocaleDateString()
-        : 'Not specified'}
-    </div>
-
-    <div className="text-teal">Applied from</div>
-    <div className="col-span-2">
-      {applicant.applied_source ? (
-        <>
-          {formatEnumForDisplay(applicant.applied_source)}{' '}
-          {applicant.applied_source === 'REFERRAL' &&
-            applicant.referrer_name && (
-              <>({applicant.referrer_name})</>
+            {applicant.status === 'BLACKLISTED' && (
+              <div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <FaExclamationTriangle className="h-4 w-4 text-red-500" />
+                  <span className="text-sm font-semibold text-red-700">Blacklisted •</span>
+                  <span className="text-sm text-red-600">{formatBlacklistedType(applicant.blacklisted_type)}</span>
+                  <span className="text-sm text-red-600">• {formatBlacklistedReason(applicant.reason)}</span>
+                </div>
+              </div>
             )}
-        </>
-      ) : (
-        'Not specified'
-      )}
-    </div>
 
-    <div className="text-teal">Discovered Company at</div>
-    <div className="col-span-2">
-      {applicant.discovered_at
-        ? formatEnumForDisplay(applicant.discovered_at)
-        : 'Not specified'}
-    </div>
-  </div>
-</div>
+            {/* Updated Applicant Details Grid with First Job and Reason for Leaving */}
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              <div className="text-teal">Applied for</div>
+              <div className="col-span-2">{applicant.job_title || 'Not specified'}</div>
 
+              <div className="text-teal">Applied on</div>
+              <div className="col-span-2">
+                {applicant.applicant_created_at
+                  ? new Date(applicant.applicant_created_at).toLocaleDateString()
+                  : 'Not specified'}
+              </div>
+
+              <div className="text-teal">Applied from</div>
+              <div className="col-span-2">
+                {applicant.applied_source ? (
+                  <>
+                    {formatEnumForDisplay(applicant.applied_source)}{' '}
+                    {applicant.applied_source === 'REFERRAL' &&
+                      applicant.referrer_name && (
+                        <>({applicant.referrer_name})</>
+                      )}
+                  </>
+                ) : (
+                  'Not specified'
+                )}
+              </div>
+
+              <div className="text-teal">Discovered Company at</div>
+              <div className="col-span-2">
+                {applicant.discovered_at
+                  ? formatEnumForDisplay(applicant.discovered_at)
+                  : 'Not specified'}
+              </div>
+
+              {/* New: First Job Field */}
+              <div className="text-teal">First Job</div>
+              <div className="col-span-2">
+                {applicant.is_first_job !== null && applicant.is_first_job !== undefined 
+                  ? applicant.is_first_job ? 'Yes' : 'No'
+                  : 'Not specified'
+                }
+              </div>
+
+              {/* New: Reason for Leaving Field - Only show if it's NOT the first job */}
+              {applicant.is_first_job === false && (
+                <>
+                  <div className="text-teal">Reason for Leaving</div>
+                  <div className="col-span-2">
+                    {applicant.reason_for_leaving
+                      ? formatReasonForLeaving(applicant.reason_for_leaving)
+                      : 'Not specified'
+                    }
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
 
           {/* Tabs */}
           <div className="mt-auto pt-5 flex justify-end">
