@@ -233,8 +233,8 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
         but our advice is that you answer each question as honestly as you can.</p>
         
         <p>For more information about our company and what we do, kindly visit our website here: 
-        <a href="https://fullsuite.ph/" style="color: #007bff; text-decoration: none;">https://fullsuite.ph/</a></p>
-        
+        <a href="https://www.suitelifer.com/" style="color: #007bff; text-decoration: none;">https://www.suitelifer.com/</a></p>
+
         <p>We look forward to reviewing your completed tests and getting to know you better.</p>
       </div>
     `;
