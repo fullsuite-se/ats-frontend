@@ -13,7 +13,7 @@ const officesStore = create((set, get) => ({
     fetchOffices: async () => {
         set({ loading: true, error: null });
         try {
-            const response = await officeService.getCurrentCompanyOffices(); // Use new method
+            const response = await officeService.getCurrentCompanyOffices();
             if (response.success) {
                 set({ offices: response.data, loading: false });
             } else {
@@ -29,12 +29,10 @@ const officesStore = create((set, get) => ({
         try {
             const response = await officeService.createOffice(officeData);
             if (response.success) {
-                const newOffice = response.data;
-                set((state) => ({ 
-                    offices: [...state.offices, newOffice],
-                    error: null 
-                }));
-                return { success: true, data: newOffice };
+                // Refresh the offices list to get the latest data from server
+                const { fetchOffices } = get();
+                await fetchOffices();
+                return { success: true, data: response.data };
             } else {
                 set({ error: response.message });
                 return { success: false, error: response.message };
@@ -50,14 +48,9 @@ const officesStore = create((set, get) => ({
         try {
             const response = await officeService.updateOffice(officeId, officeData);
             if (response.success) {
-                set((state) => ({
-                    offices: state.offices.map(office =>
-                        office.officeId === officeId 
-                            ? { ...office, ...response.data } // Use response data which includes updated timestamps
-                            : office
-                    ),
-                    error: null
-                }));
+                // Refresh the offices list to get the latest data from server
+                const { fetchOffices } = get();
+                await fetchOffices();
                 return { success: true, data: response.data };
             } else {
                 set({ error: response.message });
@@ -74,10 +67,9 @@ const officesStore = create((set, get) => ({
         try {
             const response = await officeService.deleteOffice(officeId);
             if (response.success) {
-                set((state) => ({
-                    offices: state.offices.filter(office => office.officeId !== officeId),
-                    error: null
-                }));
+                // Refresh the offices list to get the latest data from server
+                const { fetchOffices } = get();
+                await fetchOffices();
                 return { success: true };
             } else {
                 set({ error: response.message });
