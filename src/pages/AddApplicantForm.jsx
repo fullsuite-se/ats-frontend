@@ -280,54 +280,63 @@ function AddApplicantForm({ onClose, initialData, onEditSuccess }) {
     setShowConfirmationModal(true)
   }
 
-  const confirmSubmit = async () => {
-    setShowConfirmationModal(false);
-    setIsSubmitting(true);
-    const payload = {
-      applicant: JSON.stringify({
-        first_name: formData.firstName,
-        middle_name: formData.middleName,
-        last_name: formData.lastName,
-        birth_date: formData.birthdate,
-        gender: formData.gender,
-        email_1: formData.email,
-        mobile_number_1: formData.phone,
-        cv_link: formData.cvLink || (initialData?.cv_link || ""), // Preserve existing CV link if no new one
-        applied_source: formData.source,
-        discovered_at: formData.discovered,
-        referrer_id: null,
-        referrer_name: formData.source === "REFERRAL" ? formData.referrer_name : null,
-        created_by: user.user_id,
-        updated_by: user.user_id,
-        user_id: user.user_id,
-        company_id: user.company_id,
-        position_id: formData.position,
-        test_result: formData.testResult,
-        date_applied: formData.dateApplied,
-        email_2: formData.additionalEmails[0] || null,
-        email_3: formData.additionalEmails[1] || null,
-        mobile_number_2: formData.additionalPhones[0] || null,
-        ...(initialData && { applicant_id: initialData.applicant_id }),
-      }),
+ const confirmSubmit = async () => {
+  setShowConfirmationModal(false);
+  setIsSubmitting(true);
+  
+  // Helper function to convert empty strings to null
+  const toNullIfEmpty = (value) => (value === "" ? null : value);
+  
+  const payload = {
+  applicant: JSON.stringify({
+    first_name: formData.firstName,
+    middle_name: toNullIfEmpty(formData.middleName),
+    last_name: formData.lastName,
+    birth_date: toNullIfEmpty(formData.birthdate),
+    gender: toNullIfEmpty(formData.gender),
+    email_1: formData.email,
+    mobile_number_1: formData.phone,
+    cv_link: toNullIfEmpty(formData.cvLink),
+    applied_source: toNullIfEmpty(formData.source),
+    discovered_at: toNullIfEmpty(formData.discovered),
+    referrer_id: null,
+    referrer_name: formData.source === "REFERRAL" ? formData.referrer_name : null,
+    created_by: user.user_id,
+    updated_by: user.user_id,
+    user_id: user.user_id,
+    company_id: user.company_id,
+    position_id: toNullIfEmpty(formData.position),
+    test_result: toNullIfEmpty(formData.testResult),
+    date_applied: toNullIfEmpty(formData.dateApplied),
+    email_2: toNullIfEmpty(formData.additionalEmails[0]),
+    email_3: toNullIfEmpty(formData.additionalEmails[1]),
+    mobile_number_2: toNullIfEmpty(formData.additionalPhones[0]),
+    // ADD THESE NEW FIELDS WITH DEFAULT VALUES
+    is_first_job: false, // or get this value from your form
+    reason_for_leaving: null,
+    stage: "PRE_SCREENING", // Make sure this is included
+    status: "UNPROCESSED", // Make sure this is included
+    ...(initialData && { applicant_id: initialData.applicant_id }),
+  }),
+}
+  try {
+    let response
+    if (isEditing) {
+      response = await api.put(`${API_BASE_URL}/applicant/edit`, payload)
+    } else {
+      response = await api.post(`${API_BASE_URL}/applicants/add`, payload)
     }
-
-    try {
-      let response
-      if (isEditing) {
-        response = await api.put(`${API_BASE_URL}/applicant/edit`, payload)
-      } else {
-        response = await api.post(`${API_BASE_URL}/applicants/add`, payload)
-      }
-      if (isEditing && onEditSuccess) {
-        onEditSuccess()
-      }
-      onClose()
-    } catch (error) {
-      console.error("Error submitting applicant:", error)
-    } finally {
-      setIsSubmitting(false);
+    
+    if (isEditing && onEditSuccess) {
+      onEditSuccess()
     }
+    onClose()
+  } catch (error) {
+    console.error("Error submitting applicant:", error)
+  } finally {
+    setIsSubmitting(false);
   }
+}
 
   const handleCancel = () => {
     setModalType('cancel')
