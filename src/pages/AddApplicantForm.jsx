@@ -55,6 +55,8 @@ function AddApplicantForm({ onClose, initialData, onEditSuccess }) {
   const [appliedSource, setAppliedSource] = useState([])
   const [discoveredSource, setDiscoveredSource] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingCV, setIsUploadingCV] = useState(false);
+  const [cvUploadProgress, setCvUploadProgress] = useState(0);
 
   const isEditing = !!initialData
 
@@ -225,18 +227,32 @@ function AddApplicantForm({ onClose, initialData, onEditSuccess }) {
   }
 
   const handleUploadCV = async (file) => {
+    setIsUploadingCV(true);
+    setCvUploadProgress(0);
+    
     const formdata = new FormData();
     formdata.append('file', file);
     formdata.append('company_id', user.company_id);
 
     try {
-      const response = await api.post("/upload/gdrive/cv", formdata);
+      const response = await api.post("/upload/gdrive/cv", formdata, {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setCvUploadProgress(progress);
+          }
+        }
+      });
+      
       setFormData((prev) => ({
         ...prev,
         cvLink: response.data.fileUrl
       }));
     } catch (error) {
       console.error("CV upload failed:", error);
+    } finally {
+      setIsUploadingCV(false);
+      setCvUploadProgress(0);
     }
   }
 
@@ -701,12 +717,32 @@ function AddApplicantForm({ onClose, initialData, onEditSuccess }) {
                       </a>
                     </div>
                   )}
+                  
+                  {/* CV Upload Progress Indicator */}
+                  {isUploadingCV && (
+                    <div className="mb-3 p-3 border border-gray-light rounded-md bg-gray-50">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">Uploading CV...</span>
+                        <span className="text-sm text-gray-600">{cvUploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-teal h-2 rounded-full transition-all duration-300 ease-in-out"
+                          style={{ width: `${cvUploadProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="relative">
                     <input
                       type="file"
                       name="cvLink"
                       onChange={handleCVAttachementChange}
-                      className="w-full p-2 border border-gray-light rounded-md focus:outline-none pl-10 body-regular"
+                      disabled={isUploadingCV}
+                      className={`w-full p-2 border border-gray-light rounded-md focus:outline-none pl-10 body-regular ${
+                        isUploadingCV ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     />
                     <FaLink className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-dark" />
                   </div>
