@@ -1,14 +1,22 @@
-import { useEffect, useState } from "react"
-import { FiUsers, FiUserCheck, FiCalendar, FiBriefcase, FiRefreshCw, FiUserPlus } from "react-icons/fi"
-import { useNavigate, NavLink } from "react-router-dom"
+import { useEffect, useState } from "react";
+import {
+  FiUsers,
+  FiUserCheck,
+  FiCalendar,
+  FiBriefcase,
+  FiRefreshCw,
+  FiUserPlus,
+} from "react-icons/fi";
+import { useNavigate, NavLink } from "react-router-dom";
 
-import api from "../services/api"
+import api from "../services/api";
 
-import PendingApplicantConfirmationModal from "../components/Modals/PendingApplicantConfirmationModal"
-import RecentTable from "../components/RecentTable"
-import PendingTable from "../components/PendingTable"
-import InterviewTable from "../components/InterviewTable"
-import FirstTimeApplicantTable from "../components/FirstTimeApplicantTable"
+import PendingApplicantConfirmationModal from "../components/Modals/PendingApplicantConfirmationModal";
+import RecentTable from "../components/RecentTable";
+import PendingTable from "../components/PendingTable";
+import InterviewTable from "../components/InterviewTable";
+import FirstTimeApplicantTable from "../components/FirstTimeApplicantTable";
+import ScheduleCalendar from "./ScheduleCalendar";
 
 // Custom Tabs component
 const Tabs = ({ tabs, activeTab, setActiveTab }) => {
@@ -18,10 +26,11 @@ const Tabs = ({ tabs, activeTab, setActiveTab }) => {
         {tabs.map((tab) => (
           <button
             key={tab.value}
-            className={`py-2 px-1 border-b-2 font-medium body-regular cursor-pointer ${activeTab === tab.value
-              ? "border-teal text-teal"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
+            className={`body-regular cursor-pointer border-b-2 px-1 py-2 font-medium ${
+              activeTab === tab.value
+                ? "border-teal text-teal"
+                : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+            }`}
             onClick={() => setActiveTab(tab.value)}
           >
             {tab.label}
@@ -29,71 +38,80 @@ const Tabs = ({ tabs, activeTab, setActiveTab }) => {
         ))}
       </nav>
     </div>
-  )
-}
+  );
+};
 
 // Custom Skeleton component
 const Skeleton = ({ className = "" }) => {
-  return <div className={`animate-pulse bg-gray-light rounded ${className}`}></div>
-}
+  return (
+    <div className={`bg-gray-light animate-pulse rounded ${className}`}></div>
+  );
+};
 
 // Summary Cards Section
 const SummarySection = ({ onRefresh, setActiveTab }) => {
-  const [summaryData, setSummaryData] = useState(null)
-  const [firstTimeCount, setFirstTimeCount] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [summaryData, setSummaryData] = useState(null);
+  const [firstTimeCount, setFirstTimeCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   const fetchSummaryData = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
       const [summaryResponse, firstTimeResponse] = await Promise.all([
         api.get("/analytics/dashboard/summary"),
-        api.get("/applicants/first-time-job-seekers")
-      ])
+        api.get("/applicants/first-time-job-seekers"),
+      ]);
       
-      setSummaryData(summaryResponse.data.data)
-      setFirstTimeCount(firstTimeResponse.data.totalCount || 0)
+      setSummaryData(summaryResponse.data.data);
+      setFirstTimeCount(firstTimeResponse.data.totalCount || 0);
     } catch (err) {
-      console.error("Error fetching summary data:", err)
-      setError("Failed to load summary data")
+      console.error("Error fetching summary data:", err);
+      setError("Failed to load summary data");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchSummaryData()
-  }, [])
+    fetchSummaryData();
+  }, []);
 
   useEffect(() => {
     if (onRefresh) {
-      fetchSummaryData()
+      fetchSummaryData();
     }
-  }, [onRefresh])
+  }, [onRefresh]);
 
   const handleCardClick = (tab) => {
-    setActiveTab(tab)
-  }
+    setActiveTab(tab);
+  };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
+    <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
       <NavLink to="/applicants">
-        <div className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out">
+        <div className="hover:bg-teal-soft cursor-pointer rounded-2xl border border-gray-200 bg-white transition duration-200 ease-in-out">
           <div className="p-6">
             <div className="flex justify-center">
-              <FiUsers className="mr-2 h-5 w-5 text-teal" />
-              <span className="body-regular text-gray-500">Total Applicants</span>
+              <FiUsers className="text-teal mr-2 h-5 w-5" />
+              <span className="body-regular text-gray-500">
+                Total Applicants
+              </span>
             </div>
 
             {loading ? (
-              <Skeleton className="h-8 w-24 mt-2" />
+              <Skeleton className="mt-2 h-8 w-24" />
             ) : error ? (
-              <div className="text-red-500 body-regular mt-2">Error loading data</div>
+              <div className="body-regular mt-2 text-red-500">
+                Error loading data
+              </div>
             ) : (
-              <div className="text-center mt-2">
-                <div className="text-2xl font-bold">{summaryData?.total_applicants.toLocaleString()}</div>
+              <div className="mt-2 text-center">
+                <div className="text-2xl font-bold">
+                  {summaryData?.total_applicants.toLocaleString()}
+                </div>
               </div>
             )}
           </div>
@@ -101,19 +119,23 @@ const SummarySection = ({ onRefresh, setActiveTab }) => {
       </NavLink>
 
       <NavLink to="/analytics">
-        <div className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out">
+        <div className="hover:bg-teal-soft cursor-pointer rounded-2xl border border-gray-200 bg-white transition duration-200 ease-in-out">
           <div className="p-6">
             <div className="flex justify-center">
-              <FiUserCheck className="mr-2 h-5 w-5 text-teal" />
+              <FiUserCheck className="text-teal mr-2 h-5 w-5" />
               <span className="body-regular text-gray-500">Hired</span>
             </div>
             {loading ? (
-              <Skeleton className="h-8 w-24 mt-2" />
+              <Skeleton className="mt-2 h-8 w-24" />
             ) : error ? (
-              <div className="text-red-500 body-regular mt-2">Error loading data</div>
+              <div className="body-regular mt-2 text-red-500">
+                Error loading data
+              </div>
             ) : (
-              <div className="text-center mt-2">
-                <div className="text-2xl font-bold">{summaryData?.hired_applicants.toLocaleString()}</div>
+              <div className="mt-2 text-center">
+                <div className="text-2xl font-bold">
+                  {summaryData?.hired_applicants.toLocaleString()}
+                </div>
               </div>
             )}
           </div>
@@ -122,105 +144,121 @@ const SummarySection = ({ onRefresh, setActiveTab }) => {
 
       <div
         onClick={() => handleCardClick("interviews")}
-        className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out"
+        className="hover:bg-teal-soft cursor-pointer rounded-2xl border border-gray-200 bg-white transition duration-200 ease-in-out"
       >
         <div className="p-6">
           <div className="flex justify-center">
-            <FiCalendar className="mr-2 h-5 w-5 text-teal" />
-            <span className="body-regular text-gray-500">In Interview Process</span>
+            <FiCalendar className="text-teal mr-2 h-5 w-5" />
+            <span className="body-regular text-gray-500">
+              In Interview Process
+            </span>
           </div>
           {loading ? (
-            <Skeleton className="h-8 w-24 mt-2" />
+            <Skeleton className="mt-2 h-8 w-24" />
           ) : error ? (
-            <div className="text-red-500 body-regular mt-2">Error loading data</div>
+            <div className="body-regular mt-2 text-red-500">
+              Error loading data
+            </div>
           ) : (
-            <div className="text-center mt-2">
-              <div className="text-2xl font-bold">{summaryData?.in_interview.toLocaleString()}</div>
+            <div className="mt-2 text-center">
+              <div className="text-2xl font-bold">
+                {summaryData?.in_interview.toLocaleString()}
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Fixed First-time Job Seekers Card - Removed duplicate onClick */}
+      {/* First-time Job Seekers Card */}
       <div
         onClick={() => handleCardClick("firstTimeJobSeekers")}
-        className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out"
+        className="hover:bg-teal-soft cursor-pointer rounded-2xl border border-gray-200 bg-white transition duration-200 ease-in-out"
       >
         <div className="p-6">
           <div className="flex justify-center">
-            <FiUserPlus className="mr-2 h-5 w-5 text-teal" />
+            <FiUserPlus className="text-teal mr-2 h-5 w-5" />
             <span className="body-regular text-gray-500">First-time Job Seekers</span>
           </div>
           {loading ? (
-            <Skeleton className="h-8 w-24 mt-2" />
+            <Skeleton className="mt-2 h-8 w-24" />
           ) : error ? (
-            <div className="text-red-500 body-regular mt-2">Error loading data</div>
+            <div className="body-regular mt-2 text-red-500">
+              Error loading data
+            </div>
           ) : (
-            <div className="text-center mt-2">
-              <div className="text-2xl font-bold">{firstTimeCount.toLocaleString()}</div>
+            <div className="mt-2 text-center">
+              <div className="text-2xl font-bold">
+                {firstTimeCount.toLocaleString()}
+              </div>
             </div>
           )}
         </div>
       </div>
 
       <NavLink to="/jobs">
-        <div className="bg-white rounded-2xl border border-gray-200 cursor-pointer hover:bg-teal-soft transition duration-200 ease-in-out">
+        <div className="hover:bg-teal-soft cursor-pointer rounded-2xl border border-gray-200 bg-white transition duration-200 ease-in-out">
           <div className="p-6">
             <div className="flex justify-center">
-              <FiBriefcase className="mr-2 h-5 w-5 text-teal" />
+              <FiBriefcase className="text-teal mr-2 h-5 w-5" />
               <span className="body-regular text-gray-500">Open Positions</span>
             </div>
             {loading ? (
-              <Skeleton className="h-8 w-24 mt-2" />
+              <Skeleton className="mt-2 h-8 w-24" />
             ) : error ? (
-              <div className="text-red-500 body-regular mt-2">Error loading data</div>
+              <div className="body-regular mt-2 text-red-500">
+                Error loading data
+              </div>
             ) : (
-              <div className="text-center mt-2">
-                <div className="text-2xl font-bold">{summaryData?.open_positions.toLocaleString()}</div>
+              <div className="mt-2 text-center">
+                <div className="text-2xl font-bold">
+                  {summaryData?.open_positions.toLocaleString()}
+                </div>
               </div>
             )}
           </div>
         </div>
       </NavLink>
     </div>
-  )
-}
+  );
+};
 
 // Recent Applicants Section
 const RecentApplicantsSection = ({ onRefresh }) => {
-  const [applicants, setApplicants] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [applicants, setApplicants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const fetchApplicants = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const response = await api.get("/analytics/dashboard/recent-applicants")
-      setApplicants(response.data.data)
+      const response = await api.get("/analytics/dashboard/recent-applicants");
+      setApplicants(response.data.data);
     } catch (err) {
-      console.error("Error fetching recent applicants:", err)
-      setError("Failed to load recent applicants")
+      console.error("Error fetching recent applicants:", err);
+      setError("Failed to load recent applicants");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchApplicants()
-  }, [])
+    fetchApplicants();
+  }, []);
 
   useEffect(() => {
     if (onRefresh) {
-      fetchApplicants()
+      fetchApplicants();
     }
-  }, [onRefresh])
+  }, [onRefresh]);
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <h3 className="headline text-gray-900">Recent Applicants</h3>
-        <p className="body-tiny text-gray-400">Latest applicants in the system</p>
+        <p className="body-tiny text-gray-400">
+          Latest applicants in the system
+        </p>
       </div>
 
       {loading ? (
@@ -230,73 +268,75 @@ const RecentApplicantsSection = ({ onRefresh }) => {
           ))}
         </div>
       ) : error ? (
-        <div className="p-4 text-red-500 text-center">{error}</div>
+        <div className="p-4 text-center text-red-500">{error}</div>
       ) : (
         <RecentTable
           applicants={applicants}
           onRowClick={(applicant) => {
-            alert(`Applicant: ${applicant.first_name} ${applicant.last_name}`)
+            alert(`Applicant: ${applicant.first_name} ${applicant.last_name}`);
           }}
         />
       )}
     </div>
-  )
-}
+  );
+};
 
 const PendingApplicantsSection = ({ onRefresh }) => {
-  const [pendingApplicants, setPendingApplicants] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [selectedApplicant, setSelectedApplicant] = useState(null)
+  const [pendingApplicants, setPendingApplicants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchPendingApplicants = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const response = await api.get("/applicants/pending")
+      const response = await api.get("/applicants/pending");
       // Update to use the title provided in the API response
-      setPendingApplicants(response.data.pendingApplicants.map(item => ({
-        applicant_id: item.pending_applicant_id,
-        first_name: item.applicant.first_name,
-        middle_name: item.applicant.middle_name,
-        last_name: item.applicant.last_name,
-        email_1: item.applicant.email_1,
-        position: item.applicant.title, // Now using the job title directly
-        status: item.status === 1 ? "PENDING" : "UNKNOWN",
-        applied_date: item.applicant.date_applied
-      })))
+      setPendingApplicants(
+        response.data.pendingApplicants.map((item) => ({
+          applicant_id: item.pending_applicant_id,
+          first_name: item.applicant.first_name,
+          middle_name: item.applicant.middle_name,
+          last_name: item.applicant.last_name,
+          email_1: item.applicant.email_1,
+          position: item.applicant.title, // Now using the job title directly
+          status: item.status === 1 ? "PENDING" : "UNKNOWN",
+          applied_date: item.applicant.date_applied,
+        })),
+      );
     } catch (err) {
-      console.error("Error fetching pending applicants:", err)
-      setError("Failed to load pending applicants")
+      console.error("Error fetching pending applicants:", err);
+      setError("Failed to load pending applicants");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchPendingApplicants()
-  }, [])
+    fetchPendingApplicants();
+  }, []);
 
   useEffect(() => {
     if (onRefresh) {
-      fetchPendingApplicants()
+      fetchPendingApplicants();
     }
-  }, [onRefresh])
+  }, [onRefresh]);
 
   const handleRowClick = (applicant) => {
-    setSelectedApplicant(applicant)
-    setIsModalOpen(true)
-  }
+    setSelectedApplicant(applicant);
+    setIsModalOpen(true);
+  };
 
   const handleActionComplete = (action) => {
     // Refresh the data after action completes
-    fetchPendingApplicants()
-  }
+    fetchPendingApplicants();
+  };
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <h3 className="headline text-gray-900">Pending Applicants</h3>
         <p className="body-tiny text-gray-400">Applicants awaiting review</p>
       </div>
@@ -308,7 +348,7 @@ const PendingApplicantsSection = ({ onRefresh }) => {
           ))}
         </div>
       ) : error ? (
-        <div className="p-4 text-red-500 text-center">{error}</div>
+        <div className="p-4 text-center text-red-500">{error}</div>
       ) : (
         <PendingTable
           applicants={pendingApplicants}
@@ -326,42 +366,42 @@ const PendingApplicantsSection = ({ onRefresh }) => {
         />
       )}
     </div>
-  )
-}
+  );
+};
 
 // Interviews Section
 const InterviewsSection = ({ onRefresh }) => {
-  const [applicants, setApplicants] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [applicants, setApplicants] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const fetchApplicants = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const response = await api.get("/analytics/dashboard/interview-schedule")
-      setApplicants(response.data.data)
+      const response = await api.get("/analytics/dashboard/interview-schedule");
+      setApplicants(response.data.data);
     } catch (err) {
-      console.error("Error fetching interview schedule:", err)
-      setError("Failed to load interview schedule")
+      console.error("Error fetching interview schedule:", err);
+      setError("Failed to load interview schedule");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchApplicants()
-  }, [])
+    fetchApplicants();
+  }, []);
 
   useEffect(() => {
     if (onRefresh) {
-      fetchApplicants()
+      fetchApplicants();
     }
-  }, [onRefresh])
+  }, [onRefresh]);
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <h3 className="headline text-gray-900">Upcoming Interviews</h3>
         <p className="body-tiny text-gray-400">Scheduled interviews for the next 7 days</p>
       </div>
@@ -373,30 +413,30 @@ const InterviewsSection = ({ onRefresh }) => {
           ))}
         </div>
       ) : error ? (
-        <div className="p-4 text-red-500 text-center">{error}</div>
+        <div className="p-4 text-center text-red-500">{error}</div>
       ) : (
         <InterviewTable
           applicants={applicants}
         />
       )}
     </div>
-  )
-}
+  );
+};
 
-// First-time Job Seekers Section - Fixed with navigation
+// First-time Job Seekers Section
 const FirstTimeJobSeekersSection = ({ onRefresh }) => {
-  const [firstTimeJobSeekers, setFirstTimeJobSeekers] = useState([])
-  const [totalCount, setTotalCount] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const navigate = useNavigate()
+  const [firstTimeJobSeekers, setFirstTimeJobSeekers] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   const fetchFirstTimeJobSeekers = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const response = await api.get("/applicants/first-time-job-seekers")
-      const applicants = response.data.firstTimeJobSeekers || []
+      const response = await api.get("/applicants/first-time-job-seekers");
+      const applicants = response.data.firstTimeJobSeekers || [];
       
       // Transform the data to match the table format
       const transformedApplicants = applicants.map(applicant => ({
@@ -411,41 +451,41 @@ const FirstTimeJobSeekersSection = ({ onRefresh }) => {
         status: applicant.status,
         application_date: applicant.application_date,
         applied_date: applicant.application_date // For compatibility
-      }))
+      }));
       
-      setFirstTimeJobSeekers(transformedApplicants)
-      setTotalCount(response.data.totalCount || 0)
+      setFirstTimeJobSeekers(transformedApplicants);
+      setTotalCount(response.data.totalCount || 0);
     } catch (err) {
-      console.error("Error fetching first-time job seekers:", err)
-      setError("Failed to load first-time job seekers")
+      console.error("Error fetching first-time job seekers:", err);
+      setError("Failed to load first-time job seekers");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchFirstTimeJobSeekers()
-  }, [])
+    fetchFirstTimeJobSeekers();
+  }, []);
 
   useEffect(() => {
     if (onRefresh) {
-      fetchFirstTimeJobSeekers()
+      fetchFirstTimeJobSeekers();
     }
-  }, [onRefresh])
+  }, [onRefresh]);
 
   const handleRowClick = (applicant) => {
-    console.log("First-time job seeker clicked:", applicant)
-    const applicantId = applicant.applicant_id || applicant.id
+    console.log("First-time job seeker clicked:", applicant);
+    const applicantId = applicant.applicant_id || applicant.id;
     if (applicantId) {
-      navigate(`/applicants/${applicantId}`)
+      navigate(`/applicants/${applicantId}`);
     } else {
-      console.error("No valid applicant ID found")
+      console.error("No valid applicant ID found");
     }
-  }
+  };
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <h3 className="headline text-gray-900">First-time Job Seekers</h3>
         <p className="body-tiny text-gray-400">
           {loading ? "Loading..." : `Total: ${totalCount} applicants`}
@@ -459,7 +499,7 @@ const FirstTimeJobSeekersSection = ({ onRefresh }) => {
           ))}
         </div>
       ) : error ? (
-        <div className="p-4 text-red-500 text-center">{error}</div>
+        <div className="p-4 text-center text-red-500">{error}</div>
       ) : (
         <FirstTimeApplicantTable
           applicants={firstTimeJobSeekers}
@@ -467,42 +507,45 @@ const FirstTimeJobSeekersSection = ({ onRefresh }) => {
         />
       )}
     </div>
-  )
-}
+  );
+};
 
 export default function Dashboard() {
   // State for tracking refresh trigger
   const [refreshCounter, setRefreshCounter] = useState(0);
 
   // Active tab
-  const [activeTab, setActiveTab] = useState("applicants")
+  const [activeTab, setActiveTab] = useState("applicants");
 
-  // Tabs configuration
+  // Tabs configuration - includes both calendar and first-time job seekers
   const tabs = [
     { label: "Recent Applicants", value: "applicants" },
     { label: "Pending Applicants", value: "pending" },
     { label: "Upcoming Interviews", value: "interviews" },
     { label: "First-time Job Seekers", value: "firstTimeJobSeekers" },
-  ]
+    { label: "Appointment Schedules", value: "calendar" },
+  ];
 
   // Handle refresh action
   const handleRefresh = () => {
-    setRefreshCounter(prev => prev + 1)
-  }
+    setRefreshCounter((prev) => prev + 1);
+  };
 
   return (
     <div>
       <div className="mx-auto mt-10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div className="mb-6 flex flex-col items-start justify-between md:flex-row md:items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-500">Track and analyze your recruitment metrics</p>
+            <p className="text-gray-500">
+              Track and analyze your recruitment metrics
+            </p>
           </div>
 
-          <div className="flex items-center space-x-4 mt-4 md:mt-0">
-            <div 
-              onClick={handleRefresh} 
-              className="flex items-center gap-2 bg-white text-teal border border-teal hover:bg-[#e6ffff] focus:ring-teal justify-center px-4 py-2 body-regular rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer"
+          <div className="mt-4 flex items-center space-x-4 md:mt-0">
+            <div
+              onClick={handleRefresh}
+              className="text-teal border-teal focus:ring-teal body-regular flex cursor-pointer items-center justify-center gap-2 rounded-md border bg-white px-4 py-2 hover:bg-[#e6ffff] focus:ring-2 focus:ring-offset-2 focus:outline-none"
             >
               <FiRefreshCw className="h-4 w-4" />
               Refresh
@@ -511,15 +554,24 @@ export default function Dashboard() {
         </div>
 
         {/* Summary Cards */}
-        <SummarySection onRefresh={refreshCounter} setActiveTab={setActiveTab} />
+        <SummarySection
+          onRefresh={refreshCounter}
+          setActiveTab={setActiveTab}
+        />
 
         <div className="gap-6">
-          <div className="bg-white rounded-2xl border border-gray-200">
+          <div className="rounded-2xl border border-gray-200 bg-white">
             <div className="px-6 py-3">
-              <Tabs tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />
+              <Tabs
+                tabs={tabs}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+              />
 
               <div className="p-4">
-                <div className={activeTab === "applicants" ? "block" : "hidden"}>
+                <div
+                  className={activeTab === "applicants" ? "block" : "hidden"}
+                >
                   <RecentApplicantsSection onRefresh={refreshCounter} />
                 </div>
 
@@ -527,12 +579,19 @@ export default function Dashboard() {
                   <PendingApplicantsSection onRefresh={refreshCounter} />
                 </div>
 
-                <div className={activeTab === "interviews" ? "block" : "hidden"}>
+                <div
+                  className={activeTab === "interviews" ? "block" : "hidden"}
+                >
                   <InterviewsSection onRefresh={refreshCounter} />
                 </div>
 
                 <div className={activeTab === "firstTimeJobSeekers" ? "block" : "hidden"}>
                   <FirstTimeJobSeekersSection onRefresh={refreshCounter} />
+                </div>
+
+                {/* ✅ Calendar Tab */}
+                <div className={activeTab === "calendar" ? "block" : "hidden"}>
+                  <ScheduleCalendar onRefresh={refreshCounter} />
                 </div>
               </div>
             </div>
@@ -540,5 +599,5 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
-  )
+  );
 }
