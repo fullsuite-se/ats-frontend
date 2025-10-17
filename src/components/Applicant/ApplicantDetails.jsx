@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaAddressCard, FaEnvelope, FaPen, FaPhone, FaUser, FaHistory, FaTrash, FaCloudUploadAlt, FaEye } from 'react-icons/fa';
+import { FaAddressCard, FaEnvelope, FaPen, FaPhone, FaUser, FaHistory, FaTrash, FaCloudUploadAlt, FaEye, FaBan, FaExclamationTriangle } from 'react-icons/fa';
 import useUserStore from '../../context/userStore';
 import api from '../../services/api';
 import Toast from '../../assets/Toast';
@@ -59,11 +59,64 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
   const canEditApplicant = hasFeature("Edit Applicant");
   const canDeleteApplicant = hasFeature("Delete Applicant");
 
+  // Format blacklisted reason for display
+  const formatBlacklistedReason = (reason) => {
+    if (!reason) return 'Not specified';
 
+    const reasonMap = {
+      'DID_NOT_TAKE_TEST': 'Did not take test',
+      'NO_SHOW': 'No show',
+      'CULTURE_MISMATCH': 'Culture mismatch',
+      'EXPECTED_SALARY_MISMATCH': 'Expected salary mismatch',
+      'WORKING_SCHEDULE_MISMATCH': 'Working schedule mismatch',
+      'OTHER_REASONS': 'Other reasons'
+    };
+
+    return reasonMap[reason] || formatEnumForDisplay(reason);
+  };
+
+  // Format blacklisted type for display
+  const formatBlacklistedType = (type) => {
+    if (!type) return 'Not specified';
+
+    const typeMap = {
+      'SOFT': 'Soft Blacklist',
+      'HARD': 'Hard Blacklist'
+    };
+
+    return typeMap[type] || formatEnumForDisplay(type);
+  };
+
+  // Format reason for leaving for display
+  const formatReasonForLeaving = (reason) => {
+    if (!reason) return 'Not specified';
+
+    const reasonMap = {
+      'RESIGNED': 'Resigned',
+      'END_OF_CONTRACT': 'End of Contract',
+      'TERMINATED': 'Terminated',
+      'LAID_OFF': 'Laid Off',
+      'CAREER_CHANGE': 'Career Change',
+      'PERSONAL_REASONS': 'Personal Reasons',
+      'RELOCATION': 'Relocation',
+      'BETTER_OPPORTUNITY': 'Better Opportunity',
+      'HEALTH_REASONS': 'Health Reasons',
+      'RETIREMENT': 'Retirement',
+      'OTHER': 'Other Reasons'
+    };
+
+    return reasonMap[reason] || formatEnumForDisplay(reason);
+  };
 
   useEffect(() => {
     if (applicant && applicant.status) {
       setStatus(statusMapping[applicant.status] || '');
+
+      // Set blacklisted info if applicant is blacklisted
+      if (applicant.status === 'BLACKLISTED') {
+        setBlacklistedType(applicant.blacklisted_type);
+        setReason(applicant.reason);
+      }
 
       // Fetch status history when applicant changes
       if (applicant.progress_id) {
@@ -112,101 +165,106 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
     }
     return [];
   };
-const handleStatusChange = (e) => {
-  const newStatus = e.target.value;
-  setPendingStatus(newStatus);
 
-  // Check if any statuses are being skipped
-  if (applicant && applicant.status) {
-    const skipped = checkForSkippedStatuses(applicant.status, newStatus);
+  const handleStatusChange = (e) => {
+    const newStatus = e.target.value;
+    setPendingStatus(newStatus);
 
-    if (skipped.length > 0) {
-      setSkippedStatuses(skipped);
-      setShowSkipWarningModal(true);
+    // Check if any statuses are being skipped
+    if (applicant && applicant.status) {
+      const skipped = checkForSkippedStatuses(applicant.status, newStatus);
+
+      if (skipped.length > 0) {
+        setSkippedStatuses(skipped);
+        setShowSkipWarningModal(true);
+        return;
+      }
+    }
+
+    // If status is TEST_SENT, show email preview first
+    if (newStatus === "TEST_SENT") {
+      generateEmailPreview();
+      setShowEmailPreview(true);
       return;
     }
-  }
 
-  // If status is TEST_SENT, show email preview first
-  if (newStatus === "TEST_SENT") {
-    generateEmailPreview();
-    setShowEmailPreview(true);
-    return;
-  }
-
-  // For other statuses, proceed with date picker
-  setShowDatePicker(true);
-  const now = new Date();
-  const formattedDate = now.toISOString().split('T')[0];
-  const formattedTime = now.toTimeString().split(' ')[0];
-  setSelectedDate(`${formattedDate}T${formattedTime}`);
-  setIsDateApplicable(true);
-};
-
-// Add this helper function to avoid code duplication
-const proceedToDatePicker = () => {
-  setShowDatePicker(true);
-  const now = new Date();
-  const formattedDate = now.toISOString().split('T')[0];
-  const formattedTime = now.toTimeString().split(' ')[0];
-  setSelectedDate(`${formattedDate}T${formattedTime}`);
-  setIsDateApplicable(true);
-};
-    const handleDateChange = (e) => {
-    setSelectedDate(e.target.value);
-  };
-  const generateEmailPreview = () => {
-  const emailContent = `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-      <p>Hi ${applicant.first_name},</p>
-      
-      <p>We have received your application. Thank you for your recent application to join our team here at FullSuite. 
-      We are excited to find out if the #suitelife is the workplace you have been searching for and if you are the next Suitelifer 
-      we will be so excited about you joining our team!</p>
-      
-      <p>To kick off the evaluation process, we need you to undergo an assessment test. Rest assured, this test is not a zero-sum exercise 
-      and there is no specific passing rate you need to hit to move to the next step as we take the result of this test alongside the interview 
-      assessments to get a holistic review of your culture fit with FullSuite.</p>
-      
-      <p>Click the link of the test corresponding to the position you are applying for:</p>
-      
-      <p>Please use the link to access and complete the assessment: 
-      <a href="${applicant.assessment_url}" style="color: #007bff; text-decoration: none;">Start Assessment</a></p>
-      
-      <p>The entire test may take you between 40–80 minutes. Some candidates may find the exercise a bit too fast for comfort, 
-      but our advice is that you answer each question as honestly as you can.</p>
-      
-      <p>For more information about our company and what we do, kindly visit our website here: 
-      <a href="https://fullsuite.ph/" style="color: #007bff; text-decoration: none;">https://fullsuite.ph/</a></p>
-      
-      <p>We look forward to reviewing your completed tests and getting to know you better.</p>
-    </div>
-  `;
-  setEmailPreviewContent(emailContent);
-};
-// Update the proceedWithTestSentStatus function to use the helper
-const proceedWithTestSentStatus = () => {
-  setShowEmailPreview(false);
-  proceedToDatePicker();
-};
-// Update the proceedWithStatusChange function
-// Update the proceedWithStatusChange function to handle TEST_SENT case
-const proceedWithStatusChange = () => {
-  setShowSkipWarningModal(false);
-  
-  // If the pending status is TEST_SENT, show email preview first
-  if (pendingStatus === "TEST_SENT") {
-    generateEmailPreview();
-    setShowEmailPreview(true);
-  } else {
+    // For other statuses, proceed with date picker
     setShowDatePicker(true);
     const now = new Date();
     const formattedDate = now.toISOString().split('T')[0];
     const formattedTime = now.toTimeString().split(' ')[0];
     setSelectedDate(`${formattedDate}T${formattedTime}`);
     setIsDateApplicable(true);
-  }
-};
+  };
+
+  // Add this helper function to avoid code duplication
+  const proceedToDatePicker = () => {
+    setShowDatePicker(true);
+    const now = new Date();
+    const formattedDate = now.toISOString().split('T')[0];
+    const formattedTime = now.toTimeString().split(' ')[0];
+    setSelectedDate(`${formattedDate}T${formattedTime}`);
+    setIsDateApplicable(true);
+  };
+
+  const handleDateChange = (e) => {
+    setSelectedDate(e.target.value);
+  };
+
+  const generateEmailPreview = () => {
+    const emailContent = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <p>Hi ${applicant.first_name},</p>
+        
+        <p>We have received your application. Thank you for your recent application to join our team here at FullSuite. 
+        We are excited to find out if the #suitelife is the workplace you have been searching for and if you are the next Suitelifer 
+        we will be so excited about you joining our team!</p>
+        
+        <p>To kick off the evaluation process, we need you to undergo an assessment test. Rest assured, this test is not a zero-sum exercise 
+        and there is no specific passing rate you need to hit to move to the next step as we take the result of this test alongside the interview 
+        assessments to get a holistic review of your culture fit with FullSuite.</p>
+        
+        <p>Click the link of the test corresponding to the position you are applying for:</p>
+        
+        <p>Please use the link to access and complete the assessment: 
+        <a href="${applicant.assessment_url}" style="color: #007bff; text-decoration: none;">Start Assessment</a></p>
+        
+        <p>The entire test may take you between 40–80 minutes. Some candidates may find the exercise a bit too fast for comfort, 
+        but our advice is that you answer each question as honestly as you can.</p>
+        
+        <p>For more information about our company and what we do, kindly visit our website here: 
+        <a href="https://www.suitelifer.com/" style="color: #007bff; text-decoration: none;">https://www.suitelifer.com/</a></p>
+
+        <p>We look forward to reviewing your completed tests and getting to know you better.</p>
+      </div>
+    `;
+    setEmailPreviewContent(emailContent);
+  };
+
+  // Update the proceedWithTestSentStatus function to use the helper
+  const proceedWithTestSentStatus = () => {
+    setShowEmailPreview(false);
+    proceedToDatePicker();
+  };
+
+  // Update the proceedWithStatusChange function to handle TEST_SENT case
+  const proceedWithStatusChange = () => {
+    setShowSkipWarningModal(false);
+
+    // If the pending status is TEST_SENT, show email preview first
+    if (pendingStatus === "TEST_SENT") {
+      generateEmailPreview();
+      setShowEmailPreview(true);
+    } else {
+      setShowDatePicker(true);
+      const now = new Date();
+      const formattedDate = now.toISOString().split('T')[0];
+      const formattedTime = now.toTimeString().split(' ')[0];
+      setSelectedDate(`${formattedDate}T${formattedTime}`);
+      setIsDateApplicable(true);
+    }
+  };
+
   const cancelSkipStatusChange = () => {
     setPendingStatus('');
     setShowSkipWarningModal(false);
@@ -365,6 +423,7 @@ const proceedWithStatusChange = () => {
         <h2 className="display">
           {`${applicant.first_name || ''} ${applicant.middle_name || ''} ${applicant.last_name || ''}`}
         </h2>
+
         <div className="pl-5 pt-2 flex flex-col flex-grow">
           {applicant.gender && (
             <div className="mt-2 flex items-center flex-shrink-0">
@@ -415,7 +474,7 @@ const proceedWithStatusChange = () => {
               Test Result
             </a>
           </div>
-          <div className="mt-1 flex items-censter">
+          <div className="mt-1 flex items-center">
             <FaAddressCard className="mr-2 h-4 w-4" />
             <a
               href={applicant.cv_link || "#"}
@@ -506,66 +565,65 @@ const proceedWithStatusChange = () => {
           )}
 
           {/* Email Preview Modal for TEST_SENT status */}
-     {showEmailPreview && (
-      <Modal>
-  <div
-    className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
-    role="dialog"
-    aria-modal="true"
-  >
-    <div className="bg-white rounded-2xl shadow-2xl w-11/12 max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-100">
-        <h3 className="text-xl font-semibold text-gray-800">
-          Email Preview <span className="text-teal-600">— Test Assessment</span>
-        </h3>
-      </div>
+          {showEmailPreview && (
+            <Modal>
+              <div
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
+                role="dialog"
+                aria-modal="true"
+              >
+                <div className="bg-white rounded-2xl shadow-2xl w-11/12 max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+                  {/* Header */}
+                  <div className="px-6 py-4 border-b border-gray-100">
+                    <h3 className="text-xl font-semibold text-gray-800">
+                      Email Preview <span className="text-teal-600">— Test Assessment</span>
+                    </h3>
+                  </div>
 
-      {/* Email content */}
-      <div className="p-6 overflow-auto flex-1 bg-gray-50">
-        <div
-          className="border p-4 rounded bg-white shadow-inner max-h-96 overflow-auto text-gray-700"
-          dangerouslySetInnerHTML={{ __html: emailPreviewContent }}
-        />
-      </div>
+                  {/* Email content */}
+                  <div className="p-6 overflow-auto flex-1 bg-gray-50">
+                    <div
+                      className="border p-4 rounded bg-white shadow-inner max-h-96 overflow-auto text-gray-700"
+                      dangerouslySetInnerHTML={{ __html: emailPreviewContent }}
+                    />
+                  </div>
 
-      {/* Recipient info */}
-      <div className="px-6 py-3 text-sm text-gray-600 border-t border-gray-100">
-        <p className="mb-1">
-          This email will be sent to:
-          <span className="font-medium text-gray-800">
-            {" "}
-            {applicant.email_1}
-            {applicant.email_2 && `, ${applicant.email_2}`}
-            {applicant.email_3 && `, ${applicant.email_3}`}
-          </span>
-        </p>
-        <p>
-          CC: <span className="font-medium">hireme@getfullsuite.com</span> | BCC:{" "}
-          <span className="font-medium">{user.user_email}</span>
-        </p>
-      </div>
+                  {/* Recipient info */}
+                  <div className="px-6 py-3 text-sm text-gray-600 border-t border-gray-100">
+                    <p className="mb-1">
+                      This email will be sent to:
+                      <span className="font-medium text-gray-800">
+                        {" "}
+                        {applicant.email_1}
+                        {applicant.email_2 && `, ${applicant.email_2}`}
+                        {applicant.email_3 && `, ${applicant.email_3}`}
+                      </span>
+                    </p>
+                    <p>
+                      CC: <span className="font-medium">hireme@getfullsuite.com</span> | BCC:{" "}
+                      <span className="font-medium">{user.user_email}</span>
+                    </p>
+                  </div>
 
-      {/* Footer buttons */}
-      <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
-        <button
-          onClick={() => setShowEmailPreview(false)}
-          className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={proceedWithTestSentStatus}
-          className="px-5 py-2 rounded-lg bg-gradient-to-r from-teal-500 to-teal-600 text-white hover:from-teal-600 hover:to-teal-700 shadow transition-all"
-        >
-          Continue to Set Date
-        </button>
-      </div>
-    </div>
-  </div>
-  </Modal>
-)}
-
+                  {/* Footer buttons */}
+                  <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
+                    <button
+                      onClick={() => setShowEmailPreview(false)}
+                      className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={proceedWithTestSentStatus}
+                      className="px-5 py-2 rounded-lg bg-gradient-to-r from-teal-500 to-teal-600 text-white hover:from-teal-600 hover:to-teal-700 shadow transition-all"
+                    >
+                      Continue to Set Date
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Modal>
+          )}
 
           {/* Date picker modal */}
           {showDatePicker && (
@@ -669,31 +727,75 @@ const proceedWithStatusChange = () => {
             />
           )}
 
-          <div className="grid grid-cols-3 gap-3 pl-5 flex-grow">
-            <div className="text-teal">Applied for</div>
-            <div className="col-span-2">{applicant.job_title || 'Not specified'}</div>
-            <div className="text-teal">Applied on</div>
-            <div className="col-span-2">
-              {applicant.applicant_created_at
-                ? new Date(applicant.applicant_created_at).toLocaleDateString()
-                : 'Not specified'}
-            </div>
-            <div className="text-teal">Applied from</div>
-            <div className="col-span-2">
-              {applicant.applied_source ? (
+          <div className="pl-5 flex-grow">
+
+            {applicant.status === 'BLACKLISTED' && (
+              <div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <FaExclamationTriangle className="h-4 w-4 text-red-500" />
+                  <span className="text-sm font-semibold text-red-700">Blacklisted •</span>
+                  <span className="text-sm text-red-600">{formatBlacklistedType(applicant.blacklisted_type)}</span>
+                  <span className="text-sm text-red-600">• {formatBlacklistedReason(applicant.reason)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Updated Applicant Details Grid with First Job and Reason for Leaving */}
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              <div className="text-teal">Applied for</div>
+              <div className="col-span-2">{applicant.job_title || 'Not specified'}</div>
+
+              <div className="text-teal">Applied on</div>
+              <div className="col-span-2">
+                {applicant.applicant_created_at
+                  ? new Date(applicant.applicant_created_at).toLocaleDateString()
+                  : 'Not specified'}
+              </div>
+
+              <div className="text-teal">Applied from</div>
+              <div className="col-span-2">
+                {applicant.applied_source ? (
+                  <>
+                    {formatEnumForDisplay(applicant.applied_source)}{' '}
+                    {applicant.applied_source === 'REFERRAL' &&
+                      applicant.referrer_name && (
+                        <>({applicant.referrer_name})</>
+                      )}
+                  </>
+                ) : (
+                  'Not specified'
+                )}
+              </div>
+
+              <div className="text-teal">Discovered Company at</div>
+              <div className="col-span-2">
+                {applicant.discovered_at
+                  ? formatEnumForDisplay(applicant.discovered_at)
+                  : 'Not specified'}
+              </div>
+
+              {/* New: First Job Field */}
+              <div className="text-teal">First Job</div>
+              <div className="col-span-2">
+                {applicant.is_first_job !== null && applicant.is_first_job !== undefined 
+                  ? applicant.is_first_job ? 'Yes' : 'No'
+                  : 'Not specified'
+                }
+              </div>
+
+              {/* New: Reason for Leaving Field - Only show if it's NOT the first job */}
+              {applicant.is_first_job === false && (
                 <>
-                  {formatEnumForDisplay(applicant.applied_source)}{' '}
-                  {applicant.applied_source === 'REFERRAL' && applicant.referrer_name && (
-                    <>({applicant.referrer_name})</>
-                  )}
+                  <div className="text-teal">Reason for Leaving</div>
+                  <div className="col-span-2">
+                    {applicant.reason_for_leaving
+                      ? formatReasonForLeaving(applicant.reason_for_leaving)
+                      : 'Not specified'
+                    }
+                  </div>
                 </>
-              ) : (
-                'Not specified'
               )}
             </div>
-
-            <div className="text-teal">Discovered Company at</div>
-            <div className="col-span-2">{applicant.discovered_at ? formatEnumForDisplay(applicant.discovered_at) : 'Not specified'}</div>
           </div>
 
           {/* Tabs */}
@@ -836,9 +938,9 @@ const proceedWithStatusChange = () => {
         <Modal onClose={() => setShowPushModal(false)}>
           <div className="p-6 text-center">
             <h1 className="text-lg font-bold mb-4">Push Applicant to HRIS</h1>
-            
+
             <FeatureUnderConstruction />
-           
+
           </div>
         </Modal>
       )}

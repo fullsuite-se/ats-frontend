@@ -5,8 +5,7 @@ import { fetchApplicants } from "../services/applicantService";
 import applicantDataStore from "../context/applicantDataStore";
 
 export const useApplicantData = () => {
-    // const [applicantData, setApplicantData] = useState([]);
-    // const [statuses, setStatuses] = useState([]);
+   
 
     const { applicantData, setApplicantData, statuses, setStatuses, updateApplicantStatus } = applicantDataStore();
 

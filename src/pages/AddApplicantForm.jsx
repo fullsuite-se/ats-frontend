@@ -55,6 +55,8 @@ function AddApplicantForm({ onClose, initialData, onEditSuccess }) {
   const [appliedSource, setAppliedSource] = useState([])
   const [discoveredSource, setDiscoveredSource] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingCV, setIsUploadingCV] = useState(false);
+  const [cvUploadProgress, setCvUploadProgress] = useState(0);
 
   const isEditing = !!initialData
 
@@ -225,18 +227,32 @@ function AddApplicantForm({ onClose, initialData, onEditSuccess }) {
   }
 
   const handleUploadCV = async (file) => {
+    setIsUploadingCV(true);
+    setCvUploadProgress(0);
+    
     const formdata = new FormData();
     formdata.append('file', file);
     formdata.append('company_id', user.company_id);
 
     try {
-      const response = await api.post("/upload/gdrive/cv", formdata);
+      const response = await api.post("/upload/gdrive/cv", formdata, {
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setCvUploadProgress(progress);
+          }
+        }
+      });
+      
       setFormData((prev) => ({
         ...prev,
         cvLink: response.data.fileUrl
       }));
     } catch (error) {
       console.error("CV upload failed:", error);
+    } finally {
+      setIsUploadingCV(false);
+      setCvUploadProgress(0);
     }
   }
 
@@ -280,54 +296,63 @@ function AddApplicantForm({ onClose, initialData, onEditSuccess }) {
     setShowConfirmationModal(true)
   }
 
-  const confirmSubmit = async () => {
-    setShowConfirmationModal(false);
-    setIsSubmitting(true);
-    const payload = {
-      applicant: JSON.stringify({
-        first_name: formData.firstName,
-        middle_name: formData.middleName,
-        last_name: formData.lastName,
-        birth_date: formData.birthdate,
-        gender: formData.gender,
-        email_1: formData.email,
-        mobile_number_1: formData.phone,
-        cv_link: formData.cvLink || (initialData?.cv_link || ""), // Preserve existing CV link if no new one
-        applied_source: formData.source,
-        discovered_at: formData.discovered,
-        referrer_id: null,
-        referrer_name: formData.source === "REFERRAL" ? formData.referrer_name : null,
-        created_by: user.user_id,
-        updated_by: user.user_id,
-        user_id: user.user_id,
-        company_id: user.company_id,
-        position_id: formData.position,
-        test_result: formData.testResult,
-        date_applied: formData.dateApplied,
-        email_2: formData.additionalEmails[0] || null,
-        email_3: formData.additionalEmails[1] || null,
-        mobile_number_2: formData.additionalPhones[0] || null,
-        ...(initialData && { applicant_id: initialData.applicant_id }),
-      }),
+ const confirmSubmit = async () => {
+  setShowConfirmationModal(false);
+  setIsSubmitting(true);
+  
+  // Helper function to convert empty strings to null
+  const toNullIfEmpty = (value) => (value === "" ? null : value);
+  
+  const payload = {
+  applicant: JSON.stringify({
+    first_name: formData.firstName,
+    middle_name: toNullIfEmpty(formData.middleName),
+    last_name: formData.lastName,
+    birth_date: toNullIfEmpty(formData.birthdate),
+    gender: toNullIfEmpty(formData.gender),
+    email_1: formData.email,
+    mobile_number_1: formData.phone,
+    cv_link: toNullIfEmpty(formData.cvLink),
+    applied_source: toNullIfEmpty(formData.source),
+    discovered_at: toNullIfEmpty(formData.discovered),
+    referrer_id: null,
+    referrer_name: formData.source === "REFERRAL" ? formData.referrer_name : null,
+    created_by: user.user_id,
+    updated_by: user.user_id,
+    user_id: user.user_id,
+    company_id: user.company_id,
+    position_id: toNullIfEmpty(formData.position),
+    test_result: toNullIfEmpty(formData.testResult),
+    date_applied: toNullIfEmpty(formData.dateApplied),
+    email_2: toNullIfEmpty(formData.additionalEmails[0]),
+    email_3: toNullIfEmpty(formData.additionalEmails[1]),
+    mobile_number_2: toNullIfEmpty(formData.additionalPhones[0]),
+    // ADD THESE NEW FIELDS WITH DEFAULT VALUES
+    is_first_job: false, // or get this value from your form
+    reason_for_leaving: null,
+    stage: "PRE_SCREENING", // Make sure this is included
+    status: "UNPROCESSED", // Make sure this is included
+    ...(initialData && { applicant_id: initialData.applicant_id }),
+  }),
+}
+  try {
+    let response
+    if (isEditing) {
+      response = await api.put(`${API_BASE_URL}/applicant/edit`, payload)
+    } else {
+      response = await api.post(`${API_BASE_URL}/applicants/add`, payload)
     }
-
-    try {
-      let response
-      if (isEditing) {
-        response = await api.put(`${API_BASE_URL}/applicant/edit`, payload)
-      } else {
-        response = await api.post(`${API_BASE_URL}/applicants/add`, payload)
-      }
-      if (isEditing && onEditSuccess) {
-        onEditSuccess()
-      }
-      onClose()
-    } catch (error) {
-      console.error("Error submitting applicant:", error)
-    } finally {
-      setIsSubmitting(false);
+    
+    if (isEditing && onEditSuccess) {
+      onEditSuccess()
     }
+    onClose()
+  } catch (error) {
+    console.error("Error submitting applicant:", error)
+  } finally {
+    setIsSubmitting(false);
   }
+}
 
   const handleCancel = () => {
     setModalType('cancel')
@@ -692,12 +717,32 @@ function AddApplicantForm({ onClose, initialData, onEditSuccess }) {
                       </a>
                     </div>
                   )}
+                  
+                  {/* CV Upload Progress Indicator */}
+                  {isUploadingCV && (
+                    <div className="mb-3 p-3 border border-gray-light rounded-md bg-gray-50">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">Uploading CV...</span>
+                        <span className="text-sm text-gray-600">{cvUploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-teal h-2 rounded-full transition-all duration-300 ease-in-out"
+                          style={{ width: `${cvUploadProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="relative">
                     <input
                       type="file"
                       name="cvLink"
                       onChange={handleCVAttachementChange}
-                      className="w-full p-2 border border-gray-light rounded-md focus:outline-none pl-10 body-regular"
+                      disabled={isUploadingCV}
+                      className={`w-full p-2 border border-gray-light rounded-md focus:outline-none pl-10 body-regular ${
+                        isUploadingCV ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     />
                     <FaLink className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-dark" />
                   </div>

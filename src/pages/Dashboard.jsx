@@ -1,11 +1,13 @@
-import { act, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FiUsers,
   FiUserCheck,
   FiCalendar,
   FiBriefcase,
   FiRefreshCw,
+  FiUserPlus,
 } from "react-icons/fi";
+import { useNavigate, NavLink } from "react-router-dom";
 
 import api from "../services/api";
 
@@ -13,8 +15,7 @@ import PendingApplicantConfirmationModal from "../components/Modals/PendingAppli
 import RecentTable from "../components/RecentTable";
 import PendingTable from "../components/PendingTable";
 import InterviewTable from "../components/InterviewTable";
-import { useNavigate } from "react-router-dom";
-import { NavLink } from "react-router-dom";
+import FirstTimeApplicantTable from "../components/FirstTimeApplicantTable";
 import ScheduleCalendar from "./ScheduleCalendar";
 
 // Custom Tabs component
@@ -50,6 +51,7 @@ const Skeleton = ({ className = "" }) => {
 // Summary Cards Section
 const SummarySection = ({ onRefresh, setActiveTab }) => {
   const [summaryData, setSummaryData] = useState(null);
+  const [firstTimeCount, setFirstTimeCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
@@ -58,8 +60,13 @@ const SummarySection = ({ onRefresh, setActiveTab }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get("/analytics/dashboard/summary");
-      setSummaryData(response.data.data);
+      const [summaryResponse, firstTimeResponse] = await Promise.all([
+        api.get("/analytics/dashboard/summary"),
+        api.get("/applicants/first-time-job-seekers"),
+      ]);
+      
+      setSummaryData(summaryResponse.data.data);
+      setFirstTimeCount(firstTimeResponse.data.totalCount || 0);
     } catch (err) {
       console.error("Error fetching summary data:", err);
       setError("Failed to load summary data");
@@ -83,7 +90,7 @@ const SummarySection = ({ onRefresh, setActiveTab }) => {
   };
 
   return (
-    <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
       <NavLink to="/applicants">
         <div className="hover:bg-teal-soft cursor-pointer rounded-2xl border border-gray-200 bg-white transition duration-200 ease-in-out">
           <div className="p-6">
@@ -156,6 +163,32 @@ const SummarySection = ({ onRefresh, setActiveTab }) => {
             <div className="mt-2 text-center">
               <div className="text-2xl font-bold">
                 {summaryData?.in_interview.toLocaleString()}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* First-time Job Seekers Card */}
+      <div
+        onClick={() => handleCardClick("firstTimeJobSeekers")}
+        className="hover:bg-teal-soft cursor-pointer rounded-2xl border border-gray-200 bg-white transition duration-200 ease-in-out"
+      >
+        <div className="p-6">
+          <div className="flex justify-center">
+            <FiUserPlus className="text-teal mr-2 h-5 w-5" />
+            <span className="body-regular text-gray-500">First-time Job Seekers</span>
+          </div>
+          {loading ? (
+            <Skeleton className="mt-2 h-8 w-24" />
+          ) : error ? (
+            <div className="body-regular mt-2 text-red-500">
+              Error loading data
+            </div>
+          ) : (
+            <div className="mt-2 text-center">
+              <div className="text-2xl font-bold">
+                {firstTimeCount.toLocaleString()}
               </div>
             </div>
           )}
@@ -368,6 +401,11 @@ const InterviewsSection = ({ onRefresh }) => {
 
   return (
     <div>
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="headline text-gray-900">Upcoming Interviews</h3>
+        <p className="body-tiny text-gray-400">Scheduled interviews for the next 7 days</p>
+      </div>
+
       {loading ? (
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
@@ -377,7 +415,96 @@ const InterviewsSection = ({ onRefresh }) => {
       ) : error ? (
         <div className="p-4 text-center text-red-500">{error}</div>
       ) : (
-        <InterviewTable applicants={applicants} />
+        <InterviewTable
+          applicants={applicants}
+        />
+      )}
+    </div>
+  );
+};
+
+// First-time Job Seekers Section
+const FirstTimeJobSeekersSection = ({ onRefresh }) => {
+  const [firstTimeJobSeekers, setFirstTimeJobSeekers] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  const fetchFirstTimeJobSeekers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get("/applicants/first-time-job-seekers");
+      const applicants = response.data.firstTimeJobSeekers || [];
+      
+      // Transform the data to match the table format
+      const transformedApplicants = applicants.map(applicant => ({
+        applicant_id: applicant.applicant_id,
+        id: applicant.applicant_id, // Add id for compatibility
+        first_name: applicant.first_name,
+        middle_name: applicant.middle_name,
+        last_name: applicant.last_name,
+        email_1: applicant.email_1,
+        position_applied: applicant.position_applied,
+        position: applicant.position_applied, // For compatibility
+        status: applicant.status,
+        application_date: applicant.application_date,
+        applied_date: applicant.application_date // For compatibility
+      }));
+      
+      setFirstTimeJobSeekers(transformedApplicants);
+      setTotalCount(response.data.totalCount || 0);
+    } catch (err) {
+      console.error("Error fetching first-time job seekers:", err);
+      setError("Failed to load first-time job seekers");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFirstTimeJobSeekers();
+  }, []);
+
+  useEffect(() => {
+    if (onRefresh) {
+      fetchFirstTimeJobSeekers();
+    }
+  }, [onRefresh]);
+
+  const handleRowClick = (applicant) => {
+    console.log("First-time job seeker clicked:", applicant);
+    const applicantId = applicant.applicant_id || applicant.id;
+    if (applicantId) {
+      navigate(`/applicants/${applicantId}`);
+    } else {
+      console.error("No valid applicant ID found");
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="headline text-gray-900">First-time Job Seekers</h3>
+        <p className="body-tiny text-gray-400">
+          {loading ? "Loading..." : `Total: ${totalCount} applicants`}
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="p-4 text-center text-red-500">{error}</div>
+      ) : (
+        <FirstTimeApplicantTable
+          applicants={firstTimeJobSeekers}
+          onSelectApplicant={handleRowClick}
+        />
       )}
     </div>
   );
@@ -390,11 +517,12 @@ export default function Dashboard() {
   // Active tab
   const [activeTab, setActiveTab] = useState("applicants");
 
-  // Tabs configuration
+  // Tabs configuration - includes both calendar and first-time job seekers
   const tabs = [
     { label: "Recent Applicants", value: "applicants" },
     { label: "Pending Applicants", value: "pending" },
     { label: "Upcoming Interviews", value: "interviews" },
+    { label: "First-time Job Seekers", value: "firstTimeJobSeekers" },
     { label: "Appointment Schedules", value: "calendar" },
   ];
 
@@ -417,7 +545,6 @@ export default function Dashboard() {
           <div className="mt-4 flex items-center space-x-4 md:mt-0">
             <div
               onClick={handleRefresh}
-              variant="secondary"
               className="text-teal border-teal focus:ring-teal body-regular flex cursor-pointer items-center justify-center gap-2 rounded-md border bg-white px-4 py-2 hover:bg-[#e6ffff] focus:ring-2 focus:ring-offset-2 focus:outline-none"
             >
               <FiRefreshCw className="h-4 w-4" />
@@ -456,6 +583,10 @@ export default function Dashboard() {
                   className={activeTab === "interviews" ? "block" : "hidden"}
                 >
                   <InterviewsSection onRefresh={refreshCounter} />
+                </div>
+
+                <div className={activeTab === "firstTimeJobSeekers" ? "block" : "hidden"}>
+                  <FirstTimeJobSeekersSection onRefresh={refreshCounter} />
                 </div>
 
                 {/* ✅ Calendar Tab */}
