@@ -774,24 +774,23 @@ function ApplicantDetails({ applicant, onTabChange, activeTab, onApplicantUpdate
                   : 'Not specified'}
               </div>
 
-              {/* New: First Job Field */}
+              {/* Fixed: First Job Field */}
               <div className="text-teal">First Job</div>
               <div className="col-span-2">
-                {applicant.is_first_job !== null && applicant.is_first_job !== undefined 
-                  ? applicant.is_first_job ? 'Yes' : 'No'
+                {applicant.is_first_job !== null && applicant.is_first_job !== undefined
+                  ? applicant.is_first_job
+                    ? 'Yes'
+                    : 'No'
                   : 'Not specified'
                 }
               </div>
 
-              {/* New: Reason for Leaving Field - Only show if it's NOT the first job */}
-              {applicant.is_first_job === false && (
+              {/* Fixed: Reason for Leaving Field - Show if there's a value, regardless of is_first_job */}
+              {applicant.reason_for_leaving && (
                 <>
                   <div className="text-teal">Reason for Leaving</div>
                   <div className="col-span-2">
-                    {applicant.reason_for_leaving
-                      ? formatReasonForLeaving(applicant.reason_for_leaving)
-                      : 'Not specified'
-                    }
+                    {formatReasonForLeaving(applicant.reason_for_leaving)}
                   </div>
                 </>
               )}
