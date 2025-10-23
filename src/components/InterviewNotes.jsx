@@ -472,20 +472,19 @@ const InterviewNotes = ({ interview, applicant, fetchDiscussionInterview }) => {
       </div>
 
       <div>
-        {/* Messages */}
-        <div
-          ref={notesContainerRef}
-          className="max-h-100 min-h-60 overflow-y-auto rounded-lg py-2 px-4">
-          {interview.interview_notes.map((note) =>
-          (<MessageBox
-            key={note.note_id}
-            sender={note.noted_by}
-            date={moment(note.noted_at).format("LLL")}
-            message={note.note_body} />)
-          )}
-        </div>
+          <div
+            ref={notesContainerRef}
+            className="max-h-100 min-h-60 overflow-y-auto rounded-lg py-2 px-4">
+            {interview.interview_notes.map((note) =>
+            (<MessageBox
+              key={note.note_id}
+              sender={note.noted_by}
+               date={note.noted_at} // Pass the raw date string
+              message={note.note_body} />)
+            )}
+          </div>
 
-        {/* Message input */}
+          {/* Message input */}
         <div className="items-center">
           <div className="border-t border-gray-200 rounded-b-lg p-2">
             <div className="mb-2 flex gap-3 rounded-lg" >
